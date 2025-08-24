@@ -1,0 +1,11 @@
+---
+title: 'What is tidy data?'
+date: '2025-08-31'
+engine: knitr
+type: slides
+categories:
+- Week01
+---
+
+https://r4ds.had.co.nz/tidy-data.html
+

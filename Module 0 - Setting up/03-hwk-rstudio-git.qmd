@@ -1,0 +1,12 @@
+---
+title: 'Homework 0: Setup B'
+date: '2025-09-01'
+type: Homework
+categories:
+- HW
+- Week02
+---
+
+Note: This assignment must be submitted in github classroom.
+
+{{< include ../../homework-repos/homework-0-setup-B/Readme.md >}}

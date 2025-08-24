@@ -1,0 +1,15 @@
+---
+title: 'R, RStudio, git'
+date: '2025-08-26'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: false
+categories:
+- Week01
+---
+
+# 
+
+# How current 

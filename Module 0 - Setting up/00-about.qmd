@@ -1,0 +1,20 @@
+---
+title: 'About this class'
+date: '2025-08-26'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: false
+categories:
+- Week01
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: N.svg
+    includes:
+      in_header: header.html
+---
+
+## Welcome to Stat 471
+

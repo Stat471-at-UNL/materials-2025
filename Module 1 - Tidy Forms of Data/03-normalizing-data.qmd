@@ -1,0 +1,13 @@
+---
+title: 'Homework 8: Reshaping Data'
+date: '2025-03-31'
+engine: knitr
+author: Homework
+categories:
+- HW
+- Week09
+---
+
+Note: This assignment must be submitted in github classroom.
+
+
