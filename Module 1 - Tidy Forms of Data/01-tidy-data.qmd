@@ -134,3 +134,21 @@ Original definition: [Tidy data (2014), Hadley Wickham](https://www.jstatsoft.or
 Updated: [R for Data Science (ed.2), Hadley Wickham, chapter 12](https://r4ds.had.co.nz/tidy-data.html)
 
 
+# 'Tidy Data' can be messy
+
+- 'tidy data' requirements are minimal - mostly allow us to work with R
+
+```{r}
+students <- data.frame(
+  student_name = c("Alice", "Alice", "Bob", "Bob", "Alice", "Alice"),
+  course = c("Math", "Science", "Math", "Science", "Math", "Science"),
+  grade = c(85, 92, 78, 88, 82, 90)
+)
+
+students
+```
+
+
+- ... unfortunately not sufficient to avoid all 'messiness'
+
+- computer science concept (originally for database design): normal forms of data
