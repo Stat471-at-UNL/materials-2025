@@ -41,3 +41,5 @@ Good practice:
 # Homework for next Tuesday: check your installations and update if needed  
 
 {{< include ../../homework-repos/homework-0-setup-B/Readme.md >}}
+
+# Using AI tools
