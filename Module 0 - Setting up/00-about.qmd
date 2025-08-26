@@ -1,5 +1,5 @@
 ---
-title: 'About this class'
+title: 'About Stat 471'
 date: '2025-08-26'
 engine: knitr
 type: slides
@@ -11,10 +11,95 @@ categories:
 format:
   revealjs:
     navigation-mode: vertical
-    logo: N.svg
+    logo: ../../N.svg
     includes:
-      in_header: header.html
+      in_header: ../../header.html
 ---
 
-## Welcome to Stat 471
+# Stat 471 - Analysis of Messy Data
 
+> Analysis of complex, real-world data sets. Analysis techniques will vary depending on interest and availability of data sets.
+
+ACE 10: Generate a creative or scholarly product that requires broad knowledge, appropriate technical proficiency, information collection, synthesis, interpretation, presentation, and reflection.
+
+Pre-reqs: Stat 302, Stat 351
+
+# Objectives
+
+At the end of the course you should be able to ... 
+
+1. Assess 'messiness' of data
+2. Employ procedures different aspects of messiness in data
+3. Analyse (aspects) of messy data
+4. Document and publish your work on your online portfolio
+
+
+# Course Setup
+
+4-5 modules aimed to cover first half of the semester
+
+focus on project work for second half
+
+
+# Modules
+
+0. Setup of work environment
+1. Assessment of Data (Objective 1)
+2. Data Cleaning methods (review, Objective 2)
+3. Analysis of missing values (Objective 3)
+4. Record linkage (Objective 3)
+5. Large Data (if we have time)
+
+
+
+# Assessments
+
+- 40%: weekly homework assignments (first half)
+- 20%: midterm 
+- 30%: final project
+- 10%: readings & attendance
+
+# Homework
+
+- One every week
+- 2-3 hours
+- Revise what we covered, plus synthesize some new information
+
+- Start early: if I have time, I will give feedback on your Github classroom commits
+
+- One re-submission after the due-date (within 2 weeks)
+
+# Midterm
+
+- In-class 
+- Homework-like problem
+- Open book, open notes
+- Tentatively aimed for Thursday after Fall break
+
+# Project (Objective 4)
+
+- Individual or team based
+
+- For a topic of your choosing
+
+  - create a (cleanish) dataset
+  - choose an appropriate analysis 
+  - interpret results
+  - publish your analysis and findings
+
+- Create a video highlighting your work
+
+# Lectures
+
+- Come to class prepared
+- Be ready to work: bring your computer
+- Talk to each other!
+- Slides are posted at [https://stat471-at-unl.github.io/Stat471.github.io/](https://stat471-at-unl.github.io/Stat471.github.io/)
+
+- I'm aiming for 3:1 ratio of Lecture:'Your Turn'
+
+# Syllabus
+
+[https://canvas.unl.edu/courses/205501/assignments/syllabus](https://canvas.unl.edu/courses/205501/assignments/syllabus)
+
+# Questions?

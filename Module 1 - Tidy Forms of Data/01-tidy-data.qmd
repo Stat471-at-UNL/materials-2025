@@ -1,11 +1,136 @@
 ---
-title: 'What is tidy data?'
+title: 'What is "Messy Data"?'
 date: '2025-08-31'
 engine: knitr
 type: slides
+execute:
+  error: true
+  eval: true
+  echo: false
 categories:
 - Week01
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
 ---
 
-https://r4ds.had.co.nz/tidy-data.html
+# What is "Messy Data"? 
+
+> complex, real-world data sets
+
+What aspects of messiness have you seen in data that you don't see in classroom examples?
+
+# Aspects of messy data
+
+
+![Word cloud of results from a survey of ~40 data analysts asked about "messy data". Missing values are listed as the most common problem.](../images/messiness_is.png)
+
+# Why do we need tidy data?
+
+Messy data stands in the way of accurate conclusions:
+
+- *Accurate results*: eliminates errors and bias
+- *Valid conclusions*: prevents misleading insights
+
+
+# Tidy and messy data 
+
+![Illustrations from the Openscapes blog Tidy Data for reproducibility, efficiency, and collaboration by [Julia Lowndes and Allison Horst](https://allisonhorst.com/other-r-fun)](../images/tidy-quote.jpg){width="100%"}
+
+# Varying degree of messiness
+
+
+## Cryptic Names
+
+What are the variables?  What are the observations?
+
+```{r}
+grad <- readr::read_csv("../data/graduate-programs.csv")
+head(grad[c(2,3,4,6)])
+```
+
+
+## More cryptic
+
+What's in the column names of this data? What are the experimental units? What are the measured variables?
+
+```{r example 2 whats in the column names, echo=FALSE}
+genes <- readr::read_csv("../data/genes.csv")
+head(genes)
+```
+
+::: notes
+the experimental design is coded into the variable names, genotype:WI/WM, time:6/12, rep:1/2/4
+:::
+
+
+## Most
+
+What are the variables? What are the records?
+
+```{r example 3 what are the variables and records, echo=FALSE}
+melbtemp <- read.fwf("../data/ASN00086282.dly", 
+   c(11, 4, 2, 4, rep(c(5, 1, 1, 1), 31)), fill=T)
+head(melbtemp[,c(1,2,3,4,seq(5,100,4))])
+```
+
+::: notes
+variables are TMAX, TMIN, PRCP, year, month, day, stationid. 
+
+Each row contains the values for one month!
+:::
+
+## Too_much_info
+
+What are the variables? What are the experimental units?
+
+```{r example 4 what are the variables and experimental units, echo=FALSE}
+tb <- readr::read_csv("../data/tb.csv")
+tail(tb)
+#colnames(tb)
+```
+
+## Tables
+
+What are the variables? What are the observations?
+
+```{r example 4 what are the variables and observations, echo=FALSE}
+pew <- read.delim(
+  file = "http://stat405.had.co.nz/data/pew.txt",
+  header = TRUE,
+  stringsAsFactors = FALSE,
+  check.names = F
+)
+pew[1:5, 1:5]
+```
+
+
+## Gross on repeat
+
+10 week sensory experiment, 12 individuals assessed taste of french fries on several scales (how potato-y, buttery, grassy, rancid, paint-y do they taste?), fried in one of 3 different oils, replicated twice. 
+
+First few rows:
+
+```{r example 6 what are the factors measurements and experimental units, echo = FALSE}
+load("../data/french_fries.rda")
+head(french_fries, 4)
+```
+
+What is the experimental unit? What are the factors of the experiment? What was measured? What do you want to know?
+
+
+# Tidy Data Conventions
+
+
+1. Each observation forms a row (no data info in column names)
+2. Each variable forms a column (no mashup of multiple pieces of information)
+3. Each cell contains a single piece of observation
+
+Original definition: [Tidy data (2014), Hadley Wickham](https://www.jstatsoft.org/article/view/v059i10)
+
+Updated: [R for Data Science (ed.2), Hadley Wickham, chapter 12](https://r4ds.had.co.nz/tidy-data.html)
+
 

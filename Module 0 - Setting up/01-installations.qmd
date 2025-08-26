@@ -8,8 +8,36 @@ execute:
   eval: false
 categories:
 - Week01
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
 ---
 
-# 
+# Work environment in this class
 
-# How current 
+- R in the RStudio IDE
+
+- Github repositories for 
+
+  - homework assignments
+  - final project
+
+
+# How current is your environment?
+
+Jenny Bryan, Happy Git and GitHub for the useR, chapter 5.1:  
+
+> Get current, people. 
+
+Good practice: 
+
+  - R: don't fall behind more than one minor version (update once a year)
+  - RStudio: new features are constantly released. (Jenny: once a month, Heike: whenever I think of it - maybe twice a year??)
+  - git: update with operating system
+  
+# Homework for next Tuesday: check your installations and update if needed  
+
+{{< include ../../homework-repos/homework-0-setup-B/Readme.md >}}

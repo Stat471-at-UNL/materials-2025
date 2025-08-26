@@ -1,12 +1,15 @@
 ---
-title: 'Homework 6: Data Manipulation'
-date: '2025-03-03'
+title: 'Normal Forms of data'
+date: '2025-09-02'
 engine: knitr
-author: Homework
+type: slides
 categories:
-- HW
-- Week06
+- Week02
 --- 
 
-Note: This assignment must be submitted in github classroom.
+Work ahead? 
 
+Read through [25  Normal Forms of Data
+](https://srvanderplas.github.io/stat-computing-r-python/part-wrangling/05b-normal-forms.html)
+
+Watch https://www.youtube.com/watch?v=GFQaEYEc8_8

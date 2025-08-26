@@ -1,13 +1,13 @@
 ---
-title: 'Homework 8: Reshaping Data'
-date: '2025-03-31'
+title: 'Normalizing Data'
+date: '2025-09-02'
 engine: knitr
-author: Homework
+type: slides
 categories:
 - HW
-- Week09
+- Week02
 ---
 
-Note: This assignment must be submitted in github classroom.
+
 
 

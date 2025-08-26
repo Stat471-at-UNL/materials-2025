@@ -1,6 +1,6 @@
 ---
-title: 'Homework 0: Setup B'
-date: '2025-09-01'
+title: 'Homework 0 Setup B: Connecting RStudio and Git'
+date: '2025-09-02'
 type: Homework
 categories:
 - HW
