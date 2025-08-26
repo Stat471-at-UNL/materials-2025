@@ -139,8 +139,56 @@ students_enrolled
 
 # Adding letter grades
 
+Assume that the registrar adds letter grades to the dataset `students_enrolled`:
+
 ```{r}
 students_enrolled$letter_grades <- c("B", "A-", "C+", "B+", "B-", "A-")
+```
+
+Why could this be a potential problem?
+
+# Issues with the second Normal form
+
+Potential consistency issue: 
+
+- **transitive dependencies**: e.g. change to points might require a change to the letter grade.
+
+
+# Third Normalform
+
+A data set is in third normal form if
+
+1. it is in second normal form, and
+2. no non-key variable determines the values of another non-key variable (no transitive dependency)
+
+# Normalizing from 2nd to 3rd
+
+If there is a transitive dependency, 
+
+- remove the dependent variable from the dataset
+
+- create a new table to capture the dependency 
+
+```{r echo = TRUE}
+grading_scheme <- data.frame(
+    letter_grade = c("F", "D-", "D", "D+", "C-", "C", "C+", 
+            "B-", "B", "B+", "A-", "A", "A+"),
+    point_minimum = c(0, 60, 63, 67, 70, 73, 77, 80, 83, 87, 90, 93, 97)
+)
+```
+
+- and encode the dependency as function
+```{r echo=TRUE}
+point_to_letter <- function(point) {
+  idx <- max(which(point >= grading_scheme$point_minimum))
+  
+  grading_scheme$letter_grade[idx]
+}
+```
+
+```{r}
+point_to_letter(30)
+point_to_letter(99)
 ```
 
 
