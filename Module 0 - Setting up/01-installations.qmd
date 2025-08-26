@@ -43,3 +43,31 @@ Good practice:
 {{< include ../../homework-repos/homework-0-setup-B/Readme.md >}}
 
 # Using AI tools
+
+- We will be using LLMs in this course
+
+- We need to document any use (save prompt & output)
+
+- We need to critically assess any output
+
+# The problem with AIs
+
+- non-deterministic (different day, different luck)
+
+- model updated quietly by providers
+
+- inconsistent performance, seemingly not related to task difficulty
+
+![](../images/performance-difficulty-blank.png)
+
+# Perceived Performance of AI tools
+
+![](../images/performance-difficulty-saw.png)
+
+# AI Setup in R
+
+- package `ellmer` supports integration with most LLM providers
+- you will need to sign up for a service (market changes fast - Gemini offers a year of free Gemini Pro, OpenAI gives $18/m credit)
+- `chat <- ellmer::chat_anthropic()` opens chat with claude
+- `live_console(chat)` uses the console as a chat, exit with `Q`
+
