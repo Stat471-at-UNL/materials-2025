@@ -1,6 +1,6 @@
 ---
 title: 'Normal Forms of data'
-date: '2025-09-02'
+date: '2025-08-28'
 engine: knitr
 type: slides
 execute:
@@ -54,6 +54,8 @@ students$student_id <- rep(1:3, each = 2)
 
 # First normal form 
 
+**The key**
+
 A tidy data set is in first normal form, if it has a **key**.
 
 <br>
@@ -71,6 +73,12 @@ A key should be *stable* and *unique* over time.
 students
 ```
 
+# Is there a key?
+
+```{r}
+students |> select(-student_id)
+```
+
 # Key variables
 
 - Identifying the key needs some practice
@@ -80,6 +88,85 @@ students
 - all design variables are part of the key
 
 - no measurement variable should be part of the key
+
+
+# Identifying the key
+
+
+## Biological experiment
+
+In a study, RNA-seq expressions of 11k different genes are measured at 6 and 12 hours after seeds from two different gene lines have germinated.
+
+
+What is the key?
+
+
+## Weather station
+
+A weather station publishes monthly averages for the minimum and maximum temperature during each hour of the day.
+
+What is the key?
+
+## Tuberculosis
+
+The World Health Organization track the number of new incidences of tuberculosis by sex and age group in each country. 
+
+What is the key?
+
+## French Fries
+
+In a 10 week sensory experiment, 12 individuals assess taste of french fries on several scales (how potato-y, buttery, grassy, rancid, paint-y do they taste?), fried in one of 3 different oils, replicated twice. 
+
+What is the key?
+
+
+
+# Data queries
+
+- Generally, data doesn't just exist but should provide answers to questions 
+
+- What questions can you think of? 
+
+```{r}
+students
+```
+
+# Sample Questions
+
+- What grade does student X have in subject Y?
+
+- What is the average grade in subject Y?
+
+- How many courses does student X take? 
+
+- How many students have taken subject Y?
+
+- How many students are enrolled in total? 
+
+# Your Turn {background-color="#006666"}
+
+Write code to create data summaries to answer: 
+
+- What is the average grade in each subject?
+
+- How many courses does each student take? 
+
+- How many students are enrolled in total? 
+
+
+# Updates to the data
+
+- What happens, if Bob withdraws from Math and Science?
+
+```{r}
+students
+```
+
+::: {.fragment .fade-in}
+- It looks like Bob has left the school!
+- **deletion anomaly**
+:::
+
 
 # Issues with 1st normal form data
 
@@ -96,15 +183,28 @@ Efficiency problem:
 
 # Second Normalform
 
+**the whole key**
+
 A data set is in second normal form if
 
-1. it is in first normal form, and
-2. all non-key variables depend on all parts of the key (no split key).
+- it is in 1st NF
+- and no non-key variable depends on only a part of the key
+
+::: {.fragment .fade-in}
+
+All data in 1st NF with a single variable as a key are automatically in 2nd NF!
+:::
+
 
 
 # Normalizing from 1st to 2nd
 
-If the key is split, split the dataset into two:
+::: {.fragment .fade-in}
+
+Idea: If the key is split, split the dataset into two
+:::
+
+::::: {.fragment .fade-in}
 
 :::: {.columns}
 
@@ -137,11 +237,12 @@ students_enrolled
 
 ::::
 
+:::::
 # Adding letter grades
 
 Assume that the registrar adds letter grades to the dataset `students_enrolled`:
 
-```{r}
+```{r echo=TRUE}
 students_enrolled$letter_grades <- c("B", "A-", "C+", "B+", "B-", "A-")
 ```
 
@@ -155,6 +256,8 @@ Potential consistency issue:
 
 
 # Third Normalform
+
+**and nothing but the key**
 
 A data set is in third normal form if
 
@@ -177,7 +280,7 @@ grading_scheme <- data.frame(
 )
 ```
 
-- and encode the dependency as function
+- (optional) encode the dependency as function
 ```{r echo=TRUE}
 point_to_letter <- function(point) {
   idx <- max(which(point >= grading_scheme$point_minimum))

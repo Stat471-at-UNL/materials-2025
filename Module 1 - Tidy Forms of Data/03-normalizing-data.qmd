@@ -8,6 +8,40 @@ categories:
 - Week02
 ---
 
+# Normalization strategies
+
+1. Check whether  there are (and how many) duplicate rows in the data 
+2. Identify or create a key 
+3. 
 
 
+# Duplicate rows
 
+```{r error=TRUE}
+# Check uniqueness
+!any(duplicated(<data set>))
+```
+
+If there are duplicates, there is either no key or some rows were accidentally duplicated - count what proportion of lines is duplicated
+
+```{r error = TRUE}
+
+```
+
+# Identify candidate keys
+
+
+1. Keys have to uniquely identify a row
+
+If variables `cand1, cand2` are a key candidate, check whether they uniquely identify rows:
+```{r error = TRUE}
+# Check for unique combinations
+<data set> %>% 
+  count(cand) %>% 
+  filter(n > 1)
+```
+
+# How much normalization? 
+
+**Rule of thumb:** Normalize to eliminate anomalies, denormalize for performance. Find the sweet spot
+for your use case.
