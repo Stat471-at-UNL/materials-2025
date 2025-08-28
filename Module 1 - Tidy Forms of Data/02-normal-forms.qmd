@@ -299,7 +299,7 @@ point_to_letter(99)
 
 # Additional Resources
 
-Another example data set: [25  Normal Forms of Data
+Another example data set: [chapter 25:  Normal Forms of Data
 ](https://srvanderplas.github.io/stat-computing-r-python/part-wrangling/05b-normal-forms.html)
 
-Watch https://www.youtube.com/watch?v=GFQaEYEc8_8
+Watch Decomplexify's video on Normal forms: https://www.youtube.com/watch?v=GFQaEYEc8_8

@@ -134,6 +134,9 @@ Original definition: [Tidy data (2014), Hadley Wickham](https://www.jstatsoft.or
 Updated: [R for Data Science (ed.2), Hadley Wickham, chapter 12](https://r4ds.had.co.nz/tidy-data.html)
 
 
+
+
+
 # 'Tidy Data' can be messy
 
 - 'tidy data' requirements are minimal - mostly allow us to work with R

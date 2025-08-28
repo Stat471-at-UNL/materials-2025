@@ -1,0 +1,264 @@
+---
+title: 'Make it Tidy Data!'
+date: '2025-08-28'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: true
+  echo: false
+categories:
+- Week01
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+# Tidy Data Conventions
+
+
+1. Each observation forms a row (no data info in column names)
+2. Each variable forms a column (no mashup of multiple pieces of information)
+3. Each cell contains a single piece of observation
+
+Original definition: [Tidy data (2014), Hadley Wickham](https://www.jstatsoft.org/article/view/v059i10)
+
+Updated: [R for Data Science (ed.2), Hadley Wickham, chapter 12](https://r4ds.had.co.nz/tidy-data.html)
+
+# The tidy conventions are deceptively simple. Beware the details!
+
+
+... let's unpack that!
+
+# Each observation forms a row 
+
+:::: {.columns}
+
+::: {.column width="40%"}
+
+not like this: 
+
+```{r}
+untidy_student_data <- data.frame(
+  student_id = c(101, 101, 101, 102, 102, 102),
+  variable = c("name", "age", "grade", "name", "age", "grade"),
+  value = c("Alice", "16", "85", "Bob", "17", "92")
+)
+untidy_student_data
+```
+
+Alice's data is scattered across 3 rows
+:::
+
+::: {.column width="10%"}
+<!-- empty column to create gap -->
+:::
+
+::: {.column width="40%"}
+But this 
+```{r}
+tidy_student_data <- data.frame(
+  student_id = c(101, 102),
+  name = c("Alice", "Bob"),
+  age = c(16, 17),
+  grade = c(85, 92)
+)
+tidy_student_data
+```
+
+:::
+
+::::
+
+
+# Each variable forms a column
+
+:::: {.columns}
+
+::: {.column width="60%"}
+
+not like this: 
+
+```{r}
+untidy_weather <- data.frame(
+  city = c("NYC", "LA", "Chicago", "Miami"),
+  jan_temp = c(32, 65, 25, 75),
+  feb_temp = c(35, 67, 28, 77),
+  mar_temp = c(45, 70, 38, 80),
+  apr_temp = c(55, 73, 48, 83)
+)
+untidy_weather
+```
+
+Variables `temperature` and `month` are scattered across multiple columns 
+
+:::
+
+::: {.column width="5%"}
+<!-- empty column to create gap -->
+:::
+
+::: {.column width="35%"}
+
+But this:
+```{r}
+tidy_weather <- data.frame(
+  city = rep(c("NYC", "LA", "Chicago", "Miami"), each = 4),
+  month = rep(c("January", "February", "March", "April"), 4),
+  temp = c(32, 35, 45, 55, 65, 67, 70, 73, 25, 28, 38, 48, 75, 77,
+80, 83)
+)
+tidy_weather
+```
+
+Both `month` and `temp` are in one column each
+:::
+::::
+
+# Each Cell has a single value {auto-animate="true"}
+
+
+not like this: 
+
+```{r}
+untidy_survey <- data.frame(
+  participant_id = c(1, 2, 3, 4),
+  name = c("Alice", "Bob", "Charlie", "Diana"),
+  favorite_colors = c("blue, red", "green, yellow, purple", "red", "blue, orange"),
+  age_height = c("25_5.6ft", "30_6.1ft", "22_5.4ft", "28_5.8ft")
+)
+untidy_survey
+```
+
+# Each Cell has a single value {auto-animate="true"}
+
+
+But this:
+```{r}
+tidy_survey <- data.frame(
+  participant_id = c(1, 1, 2, 2, 2, 3, 4, 4),
+  name = c("Alice", "Alice", "Bob", "Bob", "Bob", "Charlie", "Diana", 
+"Diana"),
+  color = c("blue", "red", "green", "yellow", "purple", "red", "blue", 
+"orange"),
+  age = c(25, 25, 30, 30, 30, 22, 28, 28),
+  height_ft = c(5.6, 5.6, 6.1, 6.1, 6.1, 5.4, 5.8, 5.8)
+)
+tidy_survey
+```
+
+# Do you remember how to make these changes? 
+
+
+# Your Turn  {background-color="#006666"}
+
+Write the code that turns the left data into the right data
+
+:::: {.columns}
+
+::: {.column width="40%"}
+
+
+```{r}
+untidy_student_data <- data.frame(
+  student_id = c(101, 101, 101, 102, 102, 102),
+  variable = c("name", "age", "grade", "name", "age", "grade"),
+  value = c("Alice", "16", "85", "Bob", "17", "92")
+)
+untidy_student_data
+```
+
+:::
+
+::: {.column width="10%"}
+<!-- empty column to create gap -->
+:::
+
+::: {.column width="40%"}
+```{r}
+tidy_student_data <- data.frame(
+  student_id = c(101, 102),
+  name = c("Alice", "Bob"),
+  age = c(16, 17),
+  grade = c(85, 92)
+)
+tidy_student_data
+```
+
+:::
+
+::::
+
+```{r echo=TRUE}
+untidy_student_data <- data.frame(
+  student_id = c(101, 101, 101, 102, 102, 102),
+  variable = c("name", "age", "grade", "name", "age", "grade"),
+  value = c("Alice", "16", "85", "Bob", "17", "92")
+)
+```
+
+# Tidy verbs
+
+- `pivot_longer`: combine multiple columns into one 
+- `pivot_wider`: combine multiple rows into one
+- `separate`: make one cell multiple ones (opposite: `unite`)
+- (`unnest`: get a data frame out of a list variable (opposite: `nest`) - We will deal with this later)
+
+
+
+
+# A questionable experiment
+
+10 week sensory experiment, 12 individuals assessed taste of french fries on several scales (how potato-y, buttery, grassy, rancid, paint-y do they taste?), fried in one of 3 different oils, replicated twice. 
+
+First few rows:
+
+```{r example 6 what are the factors measurements and experimental units, echo = FALSE}
+load("../data/french_fries.rda")
+head(french_fries, 4)
+```
+
+What variables give us the experimental design? What was measured? Is this data tidy?
+
+# Your Turn {background-color="#006666"}
+
+Load the  `french_fries` data
+
+```{r eval=FALSE}
+download.file(
+    url = 
+        "https://github.com/stat471-at-UNL/materials-2025/raw/main/data/french_fries.rda",
+    destfile = "french_fries.rda"
+)
+load(french_fries)
+```
+
+Use `tidy` verbs to make the dataset (more) tidy
+
+
+# Your Turn {background-color="#006666"}
+
+Go back to the set of examples discussed in the previous slide deck and tidy each one.
+
+
+# 'Tidy Data' can be messy
+
+- 'tidy data' requirements are minimal - mostly allow us to work with R
+
+```{r}
+students <- data.frame(
+  student_name = c("Alice", "Alice", "Bob", "Bob", "Alice", "Alice"),
+  course = c("Math", "Science", "Math", "Science", "Math", "Science"),
+  grade = c(85, 92, 78, 88, 82, 90)
+)
+
+students
+```
+
+
+- ... unfortunately not sufficient to avoid all 'messiness'
+
+- computer science concept (originally for database design): normal forms of data

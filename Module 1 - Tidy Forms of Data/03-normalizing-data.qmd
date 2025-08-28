@@ -6,26 +6,47 @@ type: slides
 categories:
 - HW
 - Week02
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
 ---
+
+# Why do we care about normal forms?
+
+Normal forms help (force?) us to
+
+- look for formal structure in datasets
+- think about functions/purpose of variables
+
+
+Normalizing is a formal way of checking data quality
+
 
 # Normalization strategies
 
 1. Check whether  there are (and how many) duplicate rows in the data 
 2. Identify or create a key 
-3. 
+3. Normalize from 1st to 2nd NF
+4. Normalize from 2nd to 3rd NF
 
 
 # Duplicate rows
 
-```{r error=TRUE}
+```{r error=TRUE, eval = FALSE}
 # Check uniqueness
 !any(duplicated(<data set>))
 ```
 
 If there are duplicates, there is either no key or some rows were accidentally duplicated - count what proportion of lines is duplicated
 
-```{r error = TRUE}
-
+```{r error = TRUE, eval=FALSE}
+# What is the ratio of duplicated rows?
+table(duplicated(<data set>))
 ```
 
 # Identify candidate keys
@@ -33,13 +54,93 @@ If there are duplicates, there is either no key or some rows were accidentally d
 
 1. Keys have to uniquely identify a row
 
-If variables `cand1, cand2` are a key candidate, check whether they uniquely identify rows:
-```{r error = TRUE}
+If variables `cand1, cand2` are a key candidate, the following line will result in zero output:
+
+```{r error = TRUE, eval=FALSE}
 # Check for unique combinations
 <data set> %>% 
-  count(cand) %>% 
+  count(cand1, cand2) %>% 
   filter(n > 1)
 ```
+
+# Your Turn {background-color="#006666"}
+
+Consider the following data set capturing University records for student exam scores:
+
+```{r}
+student_courses <- data.frame(
+  student_id = c(101, 101, 102, 102, 103, 103),
+  course_id = c("CS101", "MATH201", "CS101", "PHYS101", "MATH201", "CS101"),
+  semester = c("Fall2023", "Fall2023", "Fall2023", "Fall2023", "Fall2023", "Fall2023"),
+  instructor_name = c("Dr. Smith", "Dr. Johnson", "Dr. Smith", "Dr. Johnson", "Dr. Brown", "Dr. Smith"),
+  grade = c("A", "B+", "B", "A-", "A", "B+")
+)
+```
+
+- Is this dataset in 1st normal form?
+- Is this dataset in 2nd normal form?
+
+# Normalizing from 1st to 2nd NF {auto-animate="true"}
+
+- Fixing a split key requires to split the data 
+
+- The set of non-key variables depending on a part of the key need to be summarized. This process can reveal inconsistencies
+
+::: {.fragment .fade-in}
+Idea: all variables depending on a part of the key should have the same repeated data. A group-wise summary of `unique` should only result in one value:
+
+```{r eval = FALSE}
+new_table <- old_table |> group_by(<partial key>) |> summarize(
+  variable1 = unique(variable1),
+  variable2 = unique(variable2),
+  variable3 = unique(variable3)
+)
+```
+:::
+
+# Normalizing from 1st to 2nd NF {auto-animate="true"}
+
+
+In case of errors (because of different lengths in `unique`), we can use `paste`
+
+```{r eval = FALSE}
+new_table <- old_table |> group_by(<partial key>) |> summarize(
+  variable1 = unique(variable1),
+  variable2 = unique(variable2),
+  variable3 = unique(variable3)
+)
+```
+
+# Normalizing from 1st to 2nd NF {auto-animate="true"}
+
+
+In case of errors (because of different lengths in `unique`), we can use `paste`
+
+```{r eval = FALSE}
+new_table <- old_table |> group_by(<partial key>) |> summarize(
+  variable1 = paste(unique(variable1), collapse = ", "),
+  variable2 = unique(variable2),
+  variable3 = unique(variable3)
+)
+```
+
+
+
+
+# Your Turn {background-color="#006666"}
+
+Bring the `student_courses` dataset into 2nd normal form:
+
+```{r}
+student_courses <- data.frame(
+  student_id = c(101, 101, 102, 102, 103, 103),
+  course_id = c("CS101", "MATH201", "CS101", "PHYS101", "MATH201", "CS101"),
+  semester = c("Fall2023", "Fall2023", "Fall2023", "Fall2023", "Fall2023", "Fall2023"),
+  instructor_name = c("Dr. Smith", "Dr. Johnson", "Dr. Smith", "Dr. Johnson", "Dr. Brown", "Dr. Smith"),
+  grade = c("A", "B+", "B", "A-", "A", "B+")
+)
+```
+
 
 # How much normalization? 
 
