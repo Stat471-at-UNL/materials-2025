@@ -1,0 +1,86 @@
+---
+title: 'Resolution Strategies'
+date: '2025-09-02'
+engine: knitr
+type: slides
+categories:
+- Week02
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+# There are inconsistencies - now what?
+
+
+# Immediate Actions
+
+- **Document!**: Record the inconsistency type, location, scope, and examples
+- **Assess impact**: Determine how it affects existing downstream processes and analyses 
+- **Quarantine affected data**: don't let problematic records go any further
+
+# Resolution Strategy
+
+- **Investigate root cause**: Trace back to source systems or processes - where does the problem come from?
+- **Consult domain experts**: Is it a known problem? 
+- **Choose correction method**: and document it!
+
+# Correction Framework
+- **High confidence fixes**: Automate corrections (e.g., standardize formats)
+- **Medium confidence**: Flag for review with suggested corrections (warning in code)
+- **Low confidence**: Escalate to subject matter experts (strong warning in code)
+- **Cannot resolve**: Document limitations and exclude from analysis (error message in code)
+
+# Implementation
+
+- **Create correction rules** that can be reapplied
+- **Validate fixes** so you do not accidentally introduce new problems
+- **Update documentation** and data lineage
+- **Communicate changes** to stakeholders
+- **Monitor** for recurring issues
+
+# Some Examples
+
+**Inconsistency Found:** Customer names in different formats
+```
+"John Smith", "JOHN SMITH", "Smith, John", "J. Smith"
+```
+
+**Actions Taken:**
+
+- **Document:** "Name standardization needed - 4 different formats for same customer"
+- **Solution:** Create standardization rules (e.g. Title Case, "First Last" format) and apply
+- **Result:** All become "John Smith"
+- **Prevention:** add a customer ID to make sure that J. Smith isn't confused with Jayden Smith.
+
+# Date Format Example
+
+**Inconsistency Found:** Mixed date formats
+```
+"01/02/2023", "2023-01-02", "Feb 1, 2023", "1-2-23"
+```
+
+**Actions Taken:**
+
+- **High confidence:** Convert obvious ISO dates automatically
+- **Medium confidence:** Flag ambiguous dates (01/02 - Jan 2 or Feb 1?)
+- **Solution:** Standardize to ISO format, manually review ambiguous cases
+
+
+# Address Example
+
+**Inconsistency Found:** Incomplete addresses
+```
+"123 Main", "123 Main St", "123 Main Street, Anytown"
+```
+
+**Actions Taken:**
+
+- **Standardize:** Use postal service abbreviations ("St")
+- **Geocode validation:** Verify addresses exist
+- **Flag incomplete:** Missing city/state for manual review

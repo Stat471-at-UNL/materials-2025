@@ -1,0 +1,13 @@
+---
+title: 'Homework 2: Cleaning the weather'
+type: Homework
+date: '2025-09-11'
+categories:
+- HW
+- Week02
+---
+
+Note: This assignment must be submitted in github classroom.
+
+{{< include ../../homework-repos/homework-2-clean-weather/README.md >}}
+

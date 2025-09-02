@@ -1,0 +1,13 @@
+---
+title: 'Homework 1: Reproducibility'
+type: Homework
+date: '2025-09-04'
+categories:
+- HW
+- Week02
+---
+
+Note: This assignment must be submitted in github classroom.
+
+{{< include ../../homework-repos/homework-1-reproducibility/Readme.md >}}
+

@@ -87,7 +87,7 @@ student_courses <- data.frame(
 - The set of non-key variables depending on a part of the key need to be summarized. This process can reveal inconsistencies
 
 ::: {.fragment .fade-in}
-Idea: all variables depending on a part of the key should have the same repeated data. A group-wise summary of `unique` should only result in one value:
+Idea: all variables depending on a part of the key should have the same repeated data. A group-wise summary of `unique` *should* only result in one value:
 
 ```{r eval = FALSE}
 new_table <- old_table |> group_by(<partial key>) |> summarize(
