@@ -1,0 +1,246 @@
+---
+title: 'Homework: chi-square and large data'
+date: '2025-09-09'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: true
+  echo: false
+categories:
+- Week03
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r setup, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(patchwork)
+library(nullabor)
+library(gtools)
+```
+
+
+# Homework question
+
+Is the age distribution for Nebraskans in the BRFSS sample in 2023 different from the national age distribution?
+
+```{r echo = FALSE}
+brfss <- readRDS("../../homework-repos/homework-1-reproducibility/brfssNE2023.rds")
+nebraska <- brfss |> group_by(X_AGEG5YR) |> summarize(
+  Frequency = n(),
+  Percentage = n()/nrow(brfss)*100,
+  `Weighted Percentage` = sum(X_LLCPWT)/sum(brfss$X_LLCPWT)*100
+)
+national <- readr::read_csv("../../homework-repos/homework-1-reproducibility/national-age.csv", skip=2) |> mutate(
+  `Value Label` = gsub("Notes: .*", "", `Value Label`),
+  `Value Label` = reorder(factor(`Value Label`), Value)
+)
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 4
+raw <- national |>
+  ggplot(aes(x = `Value Label`, y = Percentage, colour = "US",
+             shape = "US")) +
+  geom_point(size = 4) + 
+  xlab("Age Groups") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
+  ggtitle("Raw percentages") + 
+  geom_point(aes(x = X_AGEG5YR, colour = "Nebraska", 
+                 shape = "Nebraska"), 
+             size = 4, 
+             data = nebraska) + 
+  guides(
+    colour = guide_legend("Sample"),
+    shape = guide_legend("Sample")
+  )
+weighted <- national |>
+  ggplot(aes(x = `Value Label`, y = `Weighted Percentage`,
+             colour = "US",
+             shape = "US")) +
+  geom_point(size = 4) + 
+  xlab("Age Groups") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
+  ggtitle("Weighted percentages") + 
+  geom_point(aes(x = X_AGEG5YR, colour = "Nebraska", 
+                 shape = "Nebraska"), 
+             size = 4, 
+             data = nebraska) + 
+  guides(
+    colour = guide_legend("Sample"),
+    shape = guide_legend("Sample")
+  )
+
+raw + weighted & 
+  theme(legend.position = "bottom") + plot_layout(guides = "collect")
+```
+
+
+# $\chi^2$ - goodness of fit test
+
+Test 1: Percentages
+```{r warning=FALSE}
+chisq.test(x = nebraska$Percentage, p = national$Percentage, rescale.p = TRUE)
+```
+
+Test 2: Probabilities
+```{r warning=FALSE}
+chisq.test(x = nebraska$Percentage/100, p = national$Percentage, rescale.p = TRUE)
+```
+# $\chi^2$ - goodness of fit test (2)
+
+Test 3: Frequencies
+```{r warning = FALSE}
+chisq.test(x = nebraska$Frequency, p = national$Percentage, rescale.p = TRUE)
+```
+
+No significant difference or hugely significant difference ???
+
+# Chi-squared test and sample size
+
+```{r warning = FALSE}
+N <- 10^(0:5)
+tests <- lapply(N, FUN = function(n) chisq.test(x = nebraska$Percentage/100*n, p = national$Percentage, rescale.p = TRUE))
+                
+dframe <- tibble(N, tests) |>
+  mutate(
+    statistic = tests |> purrr::map_dbl(.f = function(tt) tt$statistic),
+    pvalue = tests |> purrr::map_dbl(.f = function(tt) tt$p.value)
+  )
+
+gg1 <- dframe |> ggplot(aes(x = N, y = statistic)) + 
+  theme_bw() + 
+  geom_abline(intercept = 0, slope = tests[[1]]$statistic) + 
+  geom_point(size = 4) +
+  ggtitle("Statistic is linear in sample size")
+
+gg2 <- dframe |> ggplot(aes(x = N, y = pvalue)) + 
+  theme_bw() + 
+  geom_point(size = 4) +
+  ggtitle("Any difference achieves significance eventually") + 
+  scale_x_log10(labels = scales::label_log(), 
+      minor_breaks = scales::minor_breaks_log())
+
+gg1 + gg2
+```
+# Cramer's V
+
+Different approach - mitigate sample size by using normalized approach:
+
+$$
+V = \sqrt{\frac{\chi^2/n}{\min (r, c) - 1}}
+$$
+
+$n$ is the overall sample size; 
+$r$, $c$ are the number of rows, columns.
+
+Here: $\widehat{V}$ = `r structure(sqrt(dframe$tests[[2]]$statistic/100), names="Cramer's V")`
+
+Heuristic: 
+0 < negligible < 0.1 < weak < 0.3 < medium < 0.5 < strong
+
+
+# Visual Inference
+
+Assume that there is no difference (null hypothesis)
+
+Create samples from the US age distribution 
+
+Compare visually
+
+# Which of these panels is different?
+
+```{r}
+create_raw_sample <- function(true) {
+#  if (!is.null(true)) return(true)
+  Value <- sample(1:14, 
+    replace=TRUE, 
+    size=sum(nebraska$Frequency),
+    prob = rdirichlet(1, alpha = national$Frequency))
+  
+  dframe <- table(Value) |> as.data.frame() |>
+    mutate(Value = as.numeric(Value))
+  names(dframe) <- c("Value", "Frequency")
+  dframe
+}
+
+ 
+
+lineup_data <- nullabor::lineup(method = create_raw_sample, 
+    true = nebraska |> select(Value = X_AGEG5YR, Frequency),
+    n = 9) 
+  
+
+national |>
+  ggplot(aes(x = `Value Label`, y = Percentage, colour = "US",
+             shape = "US")) +
+  geom_point(size = 3) + 
+  xlab("Age Groups") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
+  ggtitle("Raw percentages") + 
+  geom_point(
+    aes(x = Value, y = Frequency/nrow(brfss)*100, 
+        colour = "Nebraska", 
+                 shape = "Nebraska"), 
+             size = 3, alpha = 0.8, 
+             data = lineup_data) + 
+  guides(
+    colour = guide_legend("Sample"),
+    shape = guide_legend("Sample")
+  ) + 
+  facet_wrap(~.sample)
+
+```
+# Weighted Percentages
+
+```{r}
+create_wtd_sample <- function(true) {
+#  if (!is.null(true)) return(true)
+  Value <- sample(1:14, 
+    replace=TRUE, 
+    size=sum(nebraska$Frequency),
+    prob = rdirichlet(1, alpha = national$`Weighted Percentage`/100*sum(national$Frequency)))
+  dframe <- table(Value) |> as.data.frame() |>
+    mutate(
+      Value = as.numeric(Value), 
+      Percentage = 100*Freq/sum(nebraska$Frequency))
+  dframe
+}
+
+ 
+
+lineup_data_wtd <- nullabor::lineup(method = create_wtd_sample, 
+    true = nebraska |> select(Value = X_AGEG5YR, Percentage = `Weighted Percentage`, Frequency),
+    n = 9) 
+  
+
+national |>
+  ggplot(aes(x = `Value Label`, y = `Weighted Percentage`,
+             colour = "US",
+             shape = "US")) +
+  geom_point(size = 3) + 
+  xlab("Age Groups") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
+  geom_point(
+    aes(x = Value, y = Percentage, 
+        colour = "Nebraska", 
+                 shape = "Nebraska"), 
+             size = 3, alpha = 0.8, 
+             data = lineup_data_wtd) + 
+  guides(
+    colour = guide_legend("Sample"),
+    shape = guide_legend("Sample")
+  ) + 
+  facet_wrap(~.sample)
+
+```

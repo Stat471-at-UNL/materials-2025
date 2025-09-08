@@ -1,6 +1,6 @@
 ---
 title: 'Make it Tidy Data!'
-date: '2025-08-28'
+date: '2025-09-02'
 engine: knitr
 type: slides
 execute:

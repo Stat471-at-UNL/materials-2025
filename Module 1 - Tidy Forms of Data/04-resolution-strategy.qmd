@@ -1,6 +1,6 @@
 ---
 title: 'Resolution Strategies'
-date: '2025-09-02'
+date: '2025-09-09'
 engine: knitr
 type: slides
 categories:

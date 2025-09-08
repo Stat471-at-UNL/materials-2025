@@ -7,7 +7,7 @@ categories:
 - Week02
 ---
 
-Note: This assignment must be submitted in github classroom.
+Note: This assignment must be accepted in Canvas and submitted in github classroom.
 
 {{< include ../../homework-repos/homework-2-clean-weather/README.md >}}
 
