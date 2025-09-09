@@ -1,0 +1,278 @@
+---
+title: 'Data Formats'
+date: '2025-09-11'
+engine: knitr
+type: slides
+categories:
+- HW
+- Week03
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+
+---
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)
+```
+
+# Data Formatting
+
+"Every column is a variable"
+
+All elements in a column are realizations of the same random variable, i.e. have the same data type and format
+
+We need to make sure that that data type/format is correct (and in the most usable form)
+
+# Example: `nycflights13`
+
+package contains data for US air travel in 2013.
+
+```{r}
+library(nycflights13)
+head(flights[,1:8])
+```
+
+Consider scheduled and actual departure time  - how would we calculate the difference between them (to verify that `dep_delay` was calculated acurately)?
+
+# Flights - Departure times as integer
+
+```{r}
+flights <- flights |> mutate(
+  dep_delay_ours = dep_time - sched_dep_time
+) 
+```
+
+Obviously, can't use regular calculus:
+```{r}
+summary(flights$dep_delay - flights$dep_delay_ours)
+table(flights$dep_delay - flights$dep_delay_ours == 0)
+```
+
+> Data type does not match the variable
+
+# Flights - Departure times as datetimes
+
+```{r}
+flights <- flights |> mutate(
+  dep_time_dttm = ymd_hm(sprintf("%d/%d/%d %d:%d", year, month, day, dep_time%/%100, dep_time%%100)),
+  sched_dep_time_dttm = ymd_hm(sprintf("%d/%d/%d %d:%d", year, month, day, sched_dep_time%/%100, sched_dep_time%%100)),
+  dep_delay_dttm = interval(sched_dep_time_dttm, dep_time_dttm)/minutes(1)
+) 
+```
+
+Much better (but doesn't capture changes around midnight)
+```{r}
+summary(flights$dep_delay - flights$dep_delay_dttm)
+table(flights$dep_delay - flights$dep_delay_dttm == 0)
+table(flights$dep_delay - flights$dep_delay_dttm)
+```
+
+
+# Types of Data
+
+Basic data types (`read.csv`): 
+
+
+- logical (binary: `TRUE`/`FALSE`),  
+- numeric (integer, float/double), 
+- character (text)
+
+Additional formats (`read_csv`): 
+
+- dates & times (`lubridate` package)
+
+Also check:
+
+- factor variables (hybrid of numeric and text)
+
+
+# An example
+
+The [FBI Crime Data Explorer](https://cde.ucr.cjis.gov/LATEST/webapp/#/pages/downloads) allows a download of different aggregates of data in Excel spread sheets.
+
+![](../images/cde-fbi-state.png)
+The downloaded data is available in the file [state.zip](../data/state.zip).
+
+# An example (2)
+
+Download the file `state.zip` and unzip it:
+
+```{r echo = TRUE}
+download.file('https://github.com/stat471-at-unl/materials-2025/raw/main/data/state.zip', destfile = "state.zip")
+unzip("state.zip")
+```
+This creates the folder `state` with the three files:
+
+```
+NIBRS_Table_27_Crimes_Against_Persons_Offenses_Offense_Category_by_State_2024.xlsx
+NIBRS_Table_28_Crimes_Against_Property_Offenses_Offense_Category_by_State_2024.xlsx
+NIBRS_Table_29_Crimes_Against_Society_Offenses_Offense_Category_by_State_2024.xlsx
+```
+
+# An Example (3)
+
+Opening the file `NIBRS_Table_28_Crimes_Against_Property_Offenses_Offense_Category_by_State_2024.xlsx` shows a large table with some meta data at the top and one entry for each state:
+
+![](../images/table28.png)
+
+# An Example (4) 
+
+We import the spreadsheet with `readxl::read_xlsx` and skipping the first couple of lines:
+
+```{r}
+property <- readxl::read_xlsx("state/NIBRS_Table_28_Crimes_Against_Property_Offenses_Offense_Category_by_State_2024.xlsx", skip = 4)
+
+head(property)
+```
+
+# Your turn {background-color="#006666"}
+
+For the `property` crime data, create sensible variable names for the 6th through the 16th variable
+
+Hint: you might want to try out what happens when you skip the first five lines.
+
+# The `janitor` package
+
+`janitor::clean_names` removes spaces and special symbols; original first line is also removed
+
+```{r janitor}
+prop_names <- readxl::read_xlsx("state/NIBRS_Table_28_Crimes_Against_Property_Offenses_Offense_Category_by_State_2024.xlsx", skip = 5)
+
+property <- property |> janitor::clean_names()
+```
+
+
+# An example (6)
+
+Some columns do not have the correct format:
+
+```{r dependson="janitor"}
+str(property)
+```
+
+```{r}
+property <- property |> mutate(across(6:16, as.numeric))
+```
+
+# An example (7)
+
+Is this dataset now tidy?
+
+```{r dependson="janitor"}
+head(property)
+```
+
+# Conversion between types
+
+
+- Casting from specific to more general data type always works:
+
+    logical -> integer -> double/float -> character
+
+    `as.integer`, `as.numeric`, `as.character`
+
+- Casting to more specific data types only works when the values have the correct format
+
+
+- Maybe easier: use column specification in `readr`.
+
+
+# Example: Box office data
+
+`The-Numbers.com` provides a weekly summary of box office numbers for movies currently in theatres:
+
+```{r}
+library(rvest)
+url <- "https://www.the-numbers.com/box-office-chart/weekend/2025/08/22"
+doc <- read_html(url)
+tables <- doc |> html_table()
+tables[[2]]
+```
+
+# Controlling Column Types
+
+- Nicely formatted tables in html don't result in nicely formatted data in 
+R or python
+
+- Text files do not contain any information about column types 
+
+- Different functions use different guessing heuristics (`read_csv` from `readr` package is a lot better than base `read.csv`, and faster)
+
+- `spec()` show the specification of a data set in `tibble` format
+
+```{r}
+write.csv(tables[[2]], "box-office.csv", row.names = FALSE)
+box_office <- readr::read_csv("box-office.csv")
+```
+
+# Current column specifications
+
+```{r}
+box_office |> readr::spec()
+```
+
+# Set column specifications
+
+`col_number()` is lenient: ignores grouping mark, percent symbol, leading `$`, ...
+
+```{r}
+library(readr)
+box_office <- read_csv(
+ "box-office.csv", 
+  col_types = cols(.default = col_number(),
+                   `Movie Title` = col_character(),
+                   Distributor = col_character())
+)  
+names(box_office)[c(1,2)] <- c("Rank", "Rank_LW")
+```
+
+```{r}
+head(box_office)
+```
+
+# Other column specifications
+
+The `readr` package provides functionality to set column types: 
+
+:::: {.columns}
+
+::: {.column width="45%"}
+
+- `col_character()` (c)
+- `col_integer()` (i)
+- `col_number()` (n)
+- `col_ double()` (d)
+- `col_logical()` (l)
+
+:::
+
+::: {.column width="10%"}
+<!-- empty column to create gap -->
+:::
+
+::: {.column width="45%"}
+- `col_factor()` (f)
+- `col_date()` (D)
+- `col_datetime()` (T)
+- `col_time()` (t)
+:::
+
+::::
+
+
+`vroom()` read a delimited data set and allows a compressed column specification using a combination of these characters
+
+'?' = guess
+'_' or '-' = skip this column
+
+```{r}
+box <- vroom::vroom("box-office.csv", delim = ",", 
+                    col_types = "iiccddiiddi")
+```
+

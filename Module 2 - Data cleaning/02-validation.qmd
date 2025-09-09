@@ -1,0 +1,207 @@
+---
+title: 'Data Validation'
+date: '2025-09-16'
+engine: knitr
+type: slides
+categories:
+- HW
+- Week03
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+
+---
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)
+```
+
+# Data validation work flow
+
+Algorithmic approach to document and ensure consistency in checks of:
+
+- data structure (keys)
+  
+- data types (and units)
+
+- *data ranges*
+
+- missing values (later)
+
+
+# Checking Data Ranges
+
+- Domain specific constraints 
+
+    - **Hard limits**: Age 0-150, latitude -90°/+90°, percentage 0-100%
+    - **Temporal bounds**: Future dates for birth dates, historical limits
+    - **Check against codebook**
+
+
+- Dynamic Range Setting
+
+    - **Rolling windows**: ranges from recent historical data
+    - **Seasonal adjustment**: Monthly/quarterly range recalibration
+    - **Cohort-based**: Age-specific ranges
+
+# Checking Variable Content (2)
+
+- Statistical Methods 
+
+    - e.g. tests for normality, flag large deviations from mean
+    - more robust: flag large deviations from the median
+    - flag most extreme values (e.g. top 1%, ...)
+
+
+- Multivariate approach
+
+    - **Conditional/Contextual ranges**: Temperature by geographic region/season; Income ranges by education/location 
+    - **Cross-field checks**: BMI vs. height/weight consistency (checking transitive dependencies)
+    - **Ratio validation**: Debt-to-income plausibility
+
+# Example: BRFSS
+
+Install (mini package) `stat471` from github to access the `brfss` data set:
+
+```{r}
+# remotes::install_github("heike/stat471")
+library(stat471)
+data(brfss)
+```
+
+Consider variable `HEIGHT3` - what would we expect for its values?
+
+# Example: BRFSS (`HEIGHT3`)
+
+```{r}
+summary(brfss$HEIGHT3)
+```
+
+The average height of Nebraskans is `r round(mean(brfss$HEIGHT3, na.rm=TRUE), 1)`???
+
+# Example: BRFSS (`HEIGHT3`)
+
+Problem is mix of  (1) *unsuitable format* (ft/in <-> integer), 
+(2) focus on *data collection by phone* (9 indicates metric height measurement), and (3)
+(government) *encoding conventions* (7777/9999 encode don't know/missing)
+
+> What would be a plausible height range?
+
+```{r}
+brfss |> count(HEIGHT3)
+```
+
+
+
+
+# Setting ground rules
+
+Idea: 
+
+- write checks in form of `TRUE`/`FALSE` test statements with `FALSE` indicating non-compliant data
+
+Implementation: 
+
+- could write data checker from scratch, e.g. [data-check.R](../code/data-check.R)
+
+- better: use existing package (e.g. `testthat`, `testdat`)
+
+# Example for Data Checking
+
+```{r}
+source("../code/data-check.R")
+```
+
+```{r}
+employees <- data.frame(
+  id = c(1, 2, 2, 4),
+  age = c(25, -3, 45, 200),
+  gender = c("M", "F", "F", "X"),
+  income = c(50000, 60000, 70000, 999999),
+  start_date = ymd(c("2020-01-01", "2021-02-01", "2020-03-01", "2020-01-15")),
+  end_date   = ymd(c("2020-12-31", "2020-03-01", NA, NA))
+)
+```
+
+# Define (some) rules
+
+```{r}
+numeric_rules <- list(
+  list(var = "age", min = 0, max = 120),
+  list(var = "income", min = 0, max = 500000)
+)
+
+logic_rules <- list(
+  "start_date <= end_date"
+)
+```
+
+# Run checker
+
+```{r}
+check_data(employees, id_var = "id", numeric_rules = numeric_rules, logic_rules = logic_rules)
+```
+
+# Making rules
+
+Based on `testthat` package (for package development)
+
+Rules have the form `expect_XXX` where XXX specifies the expectation, e.g:
+
+```
+expect_equal(object, expected, tolerance)
+```
+
+More info on `testthat`: https://testthat.r-lib.org/
+
+# The `testdat` package
+
+Set a test dataset with `set_testdata` or use `with_testdata()` environment
+
+Additionally defined expectations: 
+
+- `expect_unique(vars)` fails if a (set of) variable(s) is not a key
+- `expect_range(vars, min, max,)` fails if values of `vars` are outside the specified range (use `-Inf` and `Inf` for no restrictions)
+
+- conditional expectations, proportion expectations, ...
+
+# Example: BRFSS (`HTIN4`)
+
+```{r}
+summary(brfss$HTIN4)
+```
+
+
+```{r}
+library(testdat)
+with_testdata(brfss, {
+  test_that("id is unique", {
+    expect_unique(SEQNO)
+  })
+  
+  test_that("sensible height ranges", {
+    expect_range(HTIN4, 10, 100)
+  })
+})
+```
+
+# Test fails
+
+```{r error=TRUE}
+library(testdat)
+with_testdata(brfss, {
+  test_that("id is unique", {
+    expect_unique(SEQNO)
+  })
+  
+  test_that("sensible height ranges", {
+    expect_range(HTIN4, 50, 100)
+  })
+})
+```
+
