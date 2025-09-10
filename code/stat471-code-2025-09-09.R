@@ -1,3 +1,4 @@
+library(dplyr)
 student_courses <- data.frame(
   student_id = c(101, 101, 102, 102, 103, 103),
   course_id = c("CS101", "MATH201", "CS101", "PHYS101", "MATH201", "CS101"),
