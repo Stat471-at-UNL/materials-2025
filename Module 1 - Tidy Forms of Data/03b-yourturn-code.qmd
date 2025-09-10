@@ -1,0 +1,16 @@
+---
+title: 'Your Turn code for normalizing data'
+date: '2025-09-09'
+engine: knitr
+type: code
+categories:
+- Code
+- Week02
+---
+
+```{r}
+#| echo: true
+#| eval: true 
+#| file: ../code/stat471-code-2025-09-09.R
+```
+
