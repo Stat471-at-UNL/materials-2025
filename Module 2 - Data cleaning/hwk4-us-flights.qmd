@@ -1,0 +1,13 @@
+---
+title: 'Homework 4: Flights across the US'
+type: Homework
+date: '2025-09-25'
+categories:
+- HW
+- Week05
+---
+
+Note: This assignment must be accepted in Canvas and submitted in github classroom.
+
+{{< include ../../homework-repos/homework-4-flights/README.md >}}
+

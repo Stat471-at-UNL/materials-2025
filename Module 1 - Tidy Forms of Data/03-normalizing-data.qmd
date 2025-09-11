@@ -80,6 +80,10 @@ student_courses <- data.frame(
 - Is this dataset in 1st normal form?
 - Is this dataset in 2nd normal form?
 
+# Checking for a split key
+
+
+
 # Normalizing from 1st to 2nd NF {auto-animate="true"}
 
 - Fixing a split key requires to split the data 
@@ -140,6 +144,8 @@ student_courses <- data.frame(
   grade = c("A", "B+", "B", "A-", "A", "B+")
 )
 ```
+
+
 
 
 # How much normalization? 

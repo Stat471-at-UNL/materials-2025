@@ -1,13 +1,13 @@
 ---
-title: 'Homework 3: Flights across the US'
+title: 'Homework 3: Cleaning the weather ... more'
 type: Homework
 date: '2025-09-18'
 categories:
 - HW
-- Week02
+- Week03
 ---
 
 Note: This assignment must be accepted in Canvas and submitted in github classroom.
 
-{{< include ../../homework-repos/homework-3-flights/README.md >}}
+{{< include ../../homework-repos/homework-3-cleaner-weather/README.md >}}
 

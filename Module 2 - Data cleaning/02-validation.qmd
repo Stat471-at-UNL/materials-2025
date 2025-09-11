@@ -84,13 +84,14 @@ summary(brfss$HEIGHT3)
 
 The average height of Nebraskans is `r round(mean(brfss$HEIGHT3, na.rm=TRUE), 1)`???
 
+> What would be a plausible height range?
+
 # Example: BRFSS (`HEIGHT3`)
 
 Problem is mix of  (1) *unsuitable format* (ft/in <-> integer), 
 (2) focus on *data collection by phone* (9 indicates metric height measurement), and (3)
 (government) *encoding conventions* (7777/9999 encode don't know/missing)
 
-> What would be a plausible height range?
 
 ```{r}
 brfss |> count(HEIGHT3)
@@ -170,6 +171,47 @@ Additionally defined expectations:
 
 - conditional expectations, proportion expectations, ...
 
+# Your Turn {}
+
+Make use of the `testdat` functionality specified on the [testdat website](https://socialresearchcentre.github.io/testdat/reference/index.html) to recreate the previously set expectations for the `employees` data:
+
+```{r}
+numeric_rules <- list(
+  list(var = "age", min = 0, max = 120),
+  list(var = "income", min = 0, max = 500000)
+)
+
+logic_rules <- list(
+  "start_date <= end_date"
+)
+```
+
+# Run the checks
+
+```{r error = TRUE}
+library(testdat)
+set_testdata(employees)
+
+expect_range(age, 0, 120)
+expect_range(salary, 0, 500000)
+expect_cond(!is.na(end_date), end_date > start_date)
+```
+
+# Good Practice
+
+Group sets of expectations based on functionality and give names
+
+e.g. "check for key", "check for hard constraints", "check for plausible data ranges"
+
+```{r error=TRUE}
+set_testdata(employees)
+test_that("check for hard constraints", {
+  # both age and salary are non-negative values
+  expect_range(age, 0, Inf) 
+  expect_range(salary, 0, Inf)
+})
+```
+
 # Example: BRFSS (`HTIN4`)
 
 ```{r}
@@ -177,29 +219,28 @@ summary(brfss$HTIN4)
 ```
 
 
+
 ```{r}
 library(testdat)
 with_testdata(brfss, {
-  test_that("id is unique", {
+  test_that("check for key", {
     expect_unique(SEQNO)
   })
   
-  test_that("sensible height ranges", {
-    expect_range(HTIN4, 10, 100)
+  test_that("hard height constraints", {
+    expect_range(HTIN4, 0, Inf)
   })
 })
 ```
 
 # Test fails
 
+> How should we determine plausible values?
+
 ```{r error=TRUE}
 library(testdat)
 with_testdata(brfss, {
-  test_that("id is unique", {
-    expect_unique(SEQNO)
-  })
-  
-  test_that("sensible height ranges", {
+  test_that("plausible height ranges", {
     expect_range(HTIN4, 50, 100)
   })
 })
