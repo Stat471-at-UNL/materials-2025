@@ -128,6 +128,7 @@ We import the spreadsheet with `readxl::read_xlsx` and skipping the first couple
 ```{r}
 property <- readxl::read_xlsx("state/NIBRS_Table_28_Crimes_Against_Property_Offenses_Offense_Category_by_State_2024.xlsx", skip = 4)
 
+
 head(property)
 ```
 
@@ -143,6 +144,7 @@ Hint: you might want to try out what happens when you skip the first five lines.
 
 ```{r janitor}
 prop_names <- readxl::read_xlsx("state/NIBRS_Table_28_Crimes_Against_Property_Offenses_Offense_Category_by_State_2024.xlsx", skip = 5)
+names(property)[5:16] <- names(prop_names)[-(1:4)]
 
 property <- property |> janitor::clean_names()
 ```

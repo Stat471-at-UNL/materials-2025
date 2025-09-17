@@ -1,0 +1,16 @@
+---
+title: 'Reviewing Normalizing for 2nd Normal Form'
+date: '2025-09-16'
+engine: knitr
+type: code
+categories:
+- Code
+- Week03
+---
+
+```{r}
+#| echo: true
+#| eval: true 
+#| file: ../code/stat471-code-2025-09-16.R
+```
+

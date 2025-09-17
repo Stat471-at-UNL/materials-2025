@@ -123,7 +123,7 @@ employees <- data.frame(
   id = c(1, 2, 2, 4),
   age = c(25, -3, 45, 200),
   gender = c("M", "F", "F", "X"),
-  income = c(50000, 60000, 70000, 999999),
+  salary = c(50000, 60000, 70000, 999999),
   start_date = ymd(c("2020-01-01", "2021-02-01", "2020-03-01", "2020-01-15")),
   end_date   = ymd(c("2020-12-31", "2020-03-01", NA, NA))
 )
@@ -134,7 +134,7 @@ employees <- data.frame(
 ```{r}
 numeric_rules <- list(
   list(var = "age", min = 0, max = 120),
-  list(var = "income", min = 0, max = 500000)
+  list(var = "salary", min = 0, max = 500000)
 )
 
 logic_rules <- list(
@@ -171,14 +171,14 @@ Additionally defined expectations:
 
 - conditional expectations, proportion expectations, ...
 
-# Your Turn {}
+# Your Turn {background-color="#006666"}
 
 Make use of the `testdat` functionality specified on the [testdat website](https://socialresearchcentre.github.io/testdat/reference/index.html) to recreate the previously set expectations for the `employees` data:
 
 ```{r}
 numeric_rules <- list(
   list(var = "age", min = 0, max = 120),
-  list(var = "income", min = 0, max = 500000)
+  list(var = "salary", min = 0, max = 500000)
 )
 
 logic_rules <- list(
