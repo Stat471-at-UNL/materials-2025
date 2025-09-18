@@ -1,6 +1,6 @@
 ---
 title: 'Data Validation'
-date: '2025-09-16'
+date: '2025-09-18'
 engine: knitr
 type: slides
 categories:

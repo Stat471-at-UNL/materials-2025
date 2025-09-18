@@ -1,0 +1,188 @@
+---
+title: 'Univariate Outliers'
+date: '2025-09-23'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week04
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+```
+
+# An Outlier is ...
+
+> ... a data point that is extremely different from other data points in a set, mostly due to a legitimate extreme event or a mistake
+
+outliers can occur in one or more dimensions
+
+is it a 'true' outlier or just an extreme observation?
+
+```{r echo=FALSE}
+set.seed(20260101)
+x <- rnorm(10, mean=5, sd = sqrt(5))
+y <- rexp(10, rate = .1)
+dframe <- data.frame(sample = factor(rep(1:2, each=length(x))), value=c(x, y))
+
+dframe |> ggplot(aes (x = value, y = sample)) + geom_point(size = 4) + theme_bw()
+```
+
+# Outlier detection
+
+- visually
+
+- statistical tests
+
+- data context
+
+# Depth Statistics
+
+
+For a sample $x$ of numeric values let $x_{(i)}$ denote the $i$th value of the sorted sample, i.e. $x_{(1)} \le x_{(2)} \le ... \le x_{(n)}$ for sample size $n$.
+
+
+The depth $d$ of $x_(i)$ is defined as the minimum of $i$ and $n-i+1$, i.e. "What is the minimum number of data points (including myself) that have to be overtaken to get out of the data set?"
+
+Depth is a measure of centrality - with larger depths indicating higher centrality
+
+# Example Depths
+
+Minimum and maximum have depth 1 (the smallest depth possible)
+
+Median has a depth of $\lceil n/2  \rceil$. 
+
+What depth do the first and third quartile have?
+
+Note: depth is only associated with data value, i.e. in general the mean of a sample does not have an associated depth
+
+
+# Visual Outlier Detection
+
+- Boxplot (JW Tukey, "Exploratory Data Analysis", 1977)
+
+![](https://lsc.studysixsigma.com/wp-content/uploads/sites/6/2015/12/1435.png)
+
+# Boxplots
+
+Based on *depth* statistics: sort the data. 
+
+Outliers are defined to be outside of $[Q_1 - 1.5 \times \text{IQR}, Q_3 + 1.5 \times \text{IQR}]$
+
+Extreme outliers are defined to be outside of $[Q_1 - 3 \times \text{IQR}, Q_3 + 3 \times \text{IQR}]$
+
+
+# Your Turn {background-color="#006666"}
+
+Write a function (or find a function) in R that calculates the Inter-Quartile Range of a sample $x$.
+
+With that function, calculate the number of outliers or extreme outliers of a sample $x$.
+
+```{r}
+outliers <- replicate(1000, {
+  x <- rnorm(100)
+  
+  # determine the number of outliers
+  
+  # determine the number of extreme outliers
+  
+  # report both numbers back
+})
+
+# find the proportion of outliers across the samples
+```
+
+# Z-scores
+
+- "Three sigma rule": an outlier is defined as being outside an interval of $\mu \pm 3 \sigma$
+
+Probability for a normally distributed value to be outside that range: 0.002700
+
+Daily event is outside of that range about once a year. 
+
+
+
+- Better be safe?  use the 6$\sigma$ rule!
+
+
+Probability for a normally distributed value to be outside that range:	$1.973 \times 10^{−9} = 1.973$ ppb  (or	about 1 in 	506,797,346	)
+
+Every 1.38 million years (twice in history of humankind)
+
+# Outlier detection
+
+- different cutoffs for small/large samples
+
+- all large samples will have outliers
+
+- but we want tests to be powerful enough to also detect outliers in small samples
+
+# Example: BRFSS
+
+Grubbs test (more in homework) tests difference between Max/Min and median:
+
+```{r}
+library(stat471)
+library(outliers)
+
+grubbs.test(brfss$HEIGHT3)
+```
+
+Correctly detects 9999 as an outlier
+
+# Example: BRFSS
+
+But also detects 9200 as an outlier
+
+```{r}
+grubbs.test(brfss$HEIGHT3[(brfss$HEIGHT3!=9999)])
+```
+... and keeps going: 
+
+```{r}
+grubbs.test(brfss$HEIGHT3[(brfss$HEIGHT3<7777)])
+```
+
+
+
+# Visual Detection: BRFSS
+
+- Gaps & modes: histograms and (jittered) dot plots 
+  
+- (formal) deviation from center: boxplots  
+
+```{r}
+library(stat471)
+data(brfss)
+
+brfss |> ggplot(aes(x = HEIGHT3)) + geom_histogram()
+```
+
+# Visual outlier detection
+
+- visualizations also detect other problems in the data
+
+```{r fig.height = 3, fig.width=5}
+brfss |> 
+  filter(HEIGHT3 < 7777) |>
+  ggplot(aes(x = HEIGHT3)) + geom_histogram()
+```
+
+# Visual outlier detection
+
+- while also allowing for outlier detection
+
+```{r fig.height = 3, fig.width=5}
+brfss |> 
+  ggplot(aes(x = HTM4)) + geom_histogram()
+```
+
