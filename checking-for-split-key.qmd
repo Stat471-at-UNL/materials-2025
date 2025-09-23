@@ -1,0 +1,34 @@
+---
+title: "Untitled"
+---
+
+## 3. **Using dplyr for Analysis**
+```r
+library(dplyr)
+
+# Find duplicate keys and their counts
+df %>% 
+  count(key1, key2) %>% 
+  filter(n > 1)
+
+# Check if any duplicates exist
+df %>% 
+  add_count(key1, key2) %>% 
+  summarise(has_split_key = any(n > 1))
+```
+
+## 4. **Comprehensive Function**
+```r
+check_split_key <- function(df, key_cols) {
+  if (any(duplicated(df[, key_cols, drop = FALSE]))) {
+    dupes <- df[duplicated(df[, key_cols, drop = FALSE]) | 
+               duplicated(df[, key_cols, drop = FALSE], fromLast = TRUE), ]
+    list(has_split_key = TRUE, duplicate_rows = dupes)
+  } else {
+    list(has_split_key = FALSE, duplicate_rows = NULL)
+  }
+}
+
+# Usage
+result <- check_split_key(df, c("id", "date"))
+```

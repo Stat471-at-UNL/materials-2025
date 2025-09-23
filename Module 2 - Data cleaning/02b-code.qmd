@@ -1,0 +1,17 @@
+---
+title: 'Code for Your Turn - Data Rules'
+date: '2025-09-18'
+engine: knitr
+type: code
+categories:
+- Code
+- Week03
+---
+
+```{r}
+#| echo: true
+#| eval: true 
+#| error: true
+#| file: ../code/stat471-code-2025-09-18.R
+```
+

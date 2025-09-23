@@ -1,0 +1,76 @@
+---
+title: 'Multivariate Outlier Detection'
+date: '2025-09-23'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week04
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+```
+
+# Outlier detection in higher dimensions
+
+- visually
+
+- statistical tests
+
+- data context
+
+# Visual Outlier Detection
+
+- use your data exploration skills 
+
+- make use of higher dimensional plots; add color and facetting
+
+# Mahalonobis Distance
+
+For a real-valued $p$ dimensional point $x$ with sample mean vector $\boldsymbol{\mu} \in R^p$ and covariance matrix $\mathbf{\Sigma} \in R^{{p \times p}}$ the Mahalonobis distance is defined as:
+
+$$
+D_M(\mathbf{x}) = \sqrt{ (\mathbf{x} - \boldsymbol{\mu})^t \mathbf{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu}) }
+$$
+
+Properties:
+
+- $D_M(x) \ge 0$ for all $x$
+- $D_M(x)$ is scale-invariant and unitless
+
+
+For $x \sim N(\mu,\Sigma)$, the Mahalonobis distance $D_M^2(x) \sim \chi^2_p$
+
+# Example
+
+```{r}
+library(ggplot2)
+library(car)
+
+# Base scatterplot
+p <- ggplot(airquality, aes(x = Wind, y = Temp)) +
+  geom_point() +
+  theme_bw()
+
+# Add Mahalanobis distance ellipse (95% confidence ellipse)
+p + stat_ellipse(type = "norm", level = 0.95, color = "steelblue", linewidth = 1.5)
+```
+
+# Your Turn {background-color="#006666"}
+
+Consider the variables `Temp` and `Wind` in the `airquality` data set. 
+
+Find the Mahalonobis Distance for Temp and Wind,
+
+Draw a scatterplot and mark all of the points in a different color that are larger than  the .95 quantile of the $\chi^2_2$ distribution.
+
+How many points would we expect to be outside in this plot if the data is normally distributed?
