@@ -1,0 +1,13 @@
+---
+title: 'Homework 5: Outlier Tests'
+type: Homework
+date: '2025-10-01'
+categories:
+- HW
+- Week06
+---
+
+Note: This assignment must be accepted in Canvas and submitted in github classroom.
+
+{{< include ../../homework-repos/homework-5-outlier-tests/README.md >}}
+

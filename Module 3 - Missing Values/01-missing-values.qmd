@@ -1,0 +1,353 @@
+---
+title: "Working with Missing Values - Overview"
+date: '2025-09-30'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week04
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
+library(tidyverse)
+library(naniar)
+library(mice)
+library(purrr)
+```
+
+
+# Introduction
+
+- Missing data is a common challenge for almost any data in any field. 
+- Treatment depends on type of missingness (MCAR, MAR, MNAR).
+- Explore missing data patterns.
+- Compare different approaches (naive vs multiple imputation).
+
+# Technical checks
+
+- How are missing values encoded in the data set? *Use the codebook for that!*
+
+- Change missing values to `NA`
+
+- Calculus with `NA` is consistent: 
+
+```{r}
+1 + NA
+mean(c(5, NA))
+NA == NA
+is.na(NA)
+```
+
+
+# A first triage
+
+- How bad is the problem?  
+  
+    - How many missing values are there? 
+    - How are they distributed? 
+    - How are they correlated? 
+    
+- How do we fix the problem? 
+
+    - Discard variables or case 
+    - Imputation
+
+
+
+# Toy Dataset
+
+```{r create-data, echo = FALSE}
+set.seed(202509)
+df <- tibble(
+  id    = 1:20,
+  age   = sample(c(18:70, NA), 20, replace = TRUE),
+  income = sample(c(10^5*(3:6), NA), 20, replace = TRUE),
+  score  = sample(c(1:5, NA, NA), 20, replace = TRUE),
+  group  = sample(c("A", "B", NA), 20, replace = TRUE)
+)
+```
+
+
+:::: {.columns}
+
+::: {.column width="40%" style="font-size: 50%;"}
+
+```{r echo=FALSE}
+df 
+```
+
+:::
+
+::: {.column width="10%"}
+<!-- empty column to create gap -->
+:::
+
+::: {.column width="40%"}
+
+Missing:
+
+`r sum(is.na(df))` Percent of all values
+
+80 Percent of all variables
+
+`r sum(rowSums(is.na(df))>0)/20*100` Percent of samples
+
+
+:::
+
+::::
+
+# Don't forget the basics
+
+:::{style="font-size: 30%;"}
+```{r}
+skimr::skim(df)
+```
+:::
+
+
+
+# Shadow Matrix
+
+:::: {.columns}
+
+::: {.column width="40%" style="font-size: 50%;"}
+
+```{r echo=FALSE}
+df |> mutate(across(.fns = function(x) as.numeric(is.na(x))))
+```
+
+:::
+
+::: {.column width="10%"}
+<!-- empty column to create gap -->
+:::
+
+::: {.column width="40%"}
+
+Shadow matrix helps with concentrating on structure of missing values
+
+:::
+
+::::
+
+
+# Shadow Matrix
+
+:::: {.columns}
+
+::: {.column width="40%" style="font-size: 50%;"}
+
+```{r echo=FALSE}
+shadow <- df |> mutate(across(.fns = function(x) as.numeric(is.na(x))))
+
+shadow |> count(age, income, score, group)
+```
+
+:::
+
+::: {.column width="10%"}
+<!-- empty column to create gap -->
+:::
+
+::: {.column width="40%"}
+
+Six patterns of missingness - most often: fully observed
+
+:::
+
+::::
+
+# Types of missingness 
+
+- MCAR: Missing Completely At Random
+
+- MAR: Missing At Random
+
+- MNAR: Missing Not At Random
+
+# Missing Completely At Random
+
+MCAR: the probability that a value is missing does not depend on any other observed or unobserved value. 
+
+
+These kind of missing values are unfortunate, but do not bias a model
+
+
+# Missing At Random
+
+
+MAR: probability that a value is missing depends only on the values of some observed variable(s) - (e.g. missing information on diabetes during pregnancy or age at birth of first kid) 
+
+
+Under certain conditions, these kind of missing values are ignorable - i.e. won't bias the model.
+
+If models are mis-specified, these kind of missing values can have a terrible impact
+
+# Missing Not At Random
+
+
+MNAR: the reason for missing values depends on some unseen or unobserved information    
+
+
+
+very difficult to analyze!
+
+
+# Little's MCAR test
+
+- Evaluate the number and frequency of missing value patterns
+
+- Let $y \in R^{n \times p}$ be the data and $r \in \{0,1\}^{n \times p}$ the corresponding shadow matrix, i.e. $r_{ij} = 1$ iff $y_{ij}$ is missing.
+
+- Identify all $J$ patterns of missing values $(1 \le J \le 2^p)$ with the corresponding frequencies $n_j$. The fully observed sample is one of the patterns, i.e. $\sum_{j=1}^J n_j = n$. 
+
+- For each pattern count the number of observed variables $p_j, (0 \le p_j \le p, 1 \le j \le J).$
+
+
+# Little's MCAR test (2)
+
+Consider the scaled deviation from the means as Test statistic:
+
+$$
+T^2 = \sum_{j=1}^J n_j (\bar{y}_{obs, j} - \mu_{obs})^t \Sigma^{-1}_{obs, j} (\bar{y}_{obs, j} - \mu_{obs})
+$$
+
+If the observed data $y$ are multivariate normal with mean $\mu$ and variance-covariance $\Sigma$, the following holds
+
+$$
+T^2 \stackrel{\text{asympt}}{\sim} {\chi^2_f}
+$$
+where $f = \sum_j p_j - p$
+
+
+
+# Little's MCAR test
+
+- implemented as `mcar_test` in `naniar` package
+
+- null hypothesis: data is MCAR
+
+- can't 'accept' MCAR, only fail to reject
+
+For toy data: 
+
+```{r}
+library(naniar)
+mcar_test(df[,-1])
+```
+
+# Your Turn {background-color="#006666"}
+
+Create two random variables $Y_1$ and $Y_2$ from $N(0,1)$ with $n = 100$ samples each.
+
+Now set all values in $Y_2$ to missing (`NA`), if $Y_1 \ge 1$.
+
+Make the two variables into a data set and run `mcar_test`.
+
+Does the result match your expectations? 
+
+Re-run the test with smaller sample sizes. 
+
+
+
+# Limitations
+
+- Lack of power for smaller samples
+
+- Lack of power for large number of variables
+
+- Computationally intractable for very large number of variables 
+
+- Little's MCAR test does not specify which variables are 'at fault'
+
+
+
+# `visdat` package
+
+```{r}
+library(visdat)
+vis_dat(df)
+```
+
+# `vis_miss`
+
+```{r}
+vis_miss(df)
+```
+
+# Fixing the space
+
+
+add the following code to any plots made by `visdat` package
+
+closes the gap between plots and labels
+
+```
+  scale_x_discrete(expand=FALSE, position="top") + 
+  theme(axis.text.x.top = element_text(vjust=0, angle =90))
+```
+
+
+
+# Visual Exploration  of Missingness Patterns
+
+Upset plot: variables are connected when they are jointly missing
+
+```{r explore-miss}
+df |> gg_miss_upset()
+```
+
+# Real Data Example: NHANES
+
+```{r nhanes, message=FALSE}
+library(NHANES)
+
+NHANES |> vis_dat() +
+  scale_x_discrete(expand=FALSE, position="top") + 
+  theme(axis.text.x.top = element_text(vjust=0, angle =90))
+```
+
+# Your Turn {background-color="#006666"}
+
+Consider the `NHANES` data (from CRAN package `NHANES`)
+
+- Would you consider `SleepHrsNight` to have missing values completely at random? Why or why not?
+
+- Would you consider `CompHrsDay` to have missing values completely at random? Why or why not?
+
+# Which variables are 'at fault' for MAR?
+
+Example: age in month reported only for infants in 2011/12
+
+```{r}
+NHANES |> ggplot(aes(x = AgeMonths)) + geom_histogram() + facet_wrap(~SurveyYr)
+```
+::: {style="font-size: 50%;"}
+Missing at random: generally inferred by careful read of the codebook
+
+Exploratory approach
+
+- check missing value status by demographics 
+- explore combination of variables with missing/non-missing patterns
+- make use of transitive dependencies 
+:::
+
+# Detecting Multivariate Patterns
+
+`nsets`: how many combinations of variables are considered?
+`nintersects`: number of top combinations
+
+```{r}
+NHANES |> gg_miss_upset(nintersects=8, nsets=12)
+```
+

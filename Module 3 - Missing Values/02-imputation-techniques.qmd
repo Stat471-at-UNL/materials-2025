@@ -1,0 +1,181 @@
+---
+title: "Imputing Missing Values"
+date: '2025-10-01'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week04
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
+library(tidyverse)
+library(naniar)
+library(mice)
+library(purrr)
+library(NHANES)
+```
+
+```{r create-data, echo = FALSE}
+set.seed(202509)
+df <- tibble(
+  id    = 1:20,
+  age   = sample(c(18:70, NA), 20, replace = TRUE),
+  income = sample(c(10^5*(3:6), NA), 20, replace = TRUE),
+  score  = sample(c(1:5, NA, NA), 20, replace = TRUE),
+  group  = sample(c("A", "B", NA), 20, replace = TRUE)
+)
+```
+
+# How do we 'fix' datasets with missing values?
+
+# Approach (1): Complete Case Analysis
+
+- Remove samples with missing values: `na.omit`, `na_drop` 
+
+- Use with extreme caution! This is not recommended!!
+
+```{r}
+NHANES |> drop_na() |> dim()
+```
+
+- None of the NHANES data is complete.
+
+- Generally, this is a very naive strategy 
+
+
+# Approach (2): Impute with mean
+
+Impute missing values with mean - Again, not recommended!
+
+```{r}
+# Mean imputation (bad practice!)
+df_mean_imp <- df |>
+  mutate(income_imp = if_else(is.na(income), mean(income, na.rm = TRUE), income)) 
+```
+
+```{r}
+df_mean_imp |> ggplot(aes(x = income_imp)) + geom_histogram()
+```
+# Impact of Imputing with Mean
+
+Mean is unaffected
+
+```{r}
+mean(df_mean_imp$income_imp)
+mean(df_mean_imp$income, na.rm = TRUE)
+```
+
+SD is lowered - affects confidence intervals of estimates
+
+```{r}
+sd(df_mean_imp$income_imp)
+sd(df_mean_imp$income, na.rm = TRUE)
+```
+# Example: Airquality
+
+The `airquality` data is a(n ancient) data set in R capturing daily ozone, solar, wind and temperature measurements for 5 months   
+
+
+Some of the ozone measurements are missing
+
+```{r}
+summary(airquality$Ozone)
+```
+
+How should we impute the Ozone values?
+
+# Airquality overview
+
+
+```{r}
+library(GGally)
+ggpairs(airquality)
+```
+# Model Ozone
+
+```{r}
+ozone_lm <- lm(Ozone~Temp + Wind, data = airquality)
+summary(ozone_lm)
+```
+
+# Predict Ozone
+
+Use a linear model to predict Ozone values based on covariates
+
+```{r}
+airquality_imp <- airquality |> mutate(
+  Ozone_pred = predict(ozone_lm, newdata = airquality),
+  imputed = is.na(Ozone),
+  Ozone_imp = ifelse(is.na(Ozone), Ozone_pred, Ozone)
+)
+```
+
+
+# Predict Ozone
+
+
+```{r}
+ggpairs(data = airquality_imp |> select(-Ozone_pred, -Ozone), 
+        mapping = aes(colour = imputed)) 
+```
+
+
+# Idea for Predictive Mean Matching
+
+
+
+# Multiple Imputation with `mice`
+
+```{r mice}
+# Run multiple imputation
+imp <- mice(df, m = 5, method = "pmm", seed = 202509)
+
+# Completed datasets
+completed_list <- complete(imp, "all") |> map(as_tibble)
+
+# Example: regression model
+models <- map(completed_list, ~ lm(income ~ age + group, data = .x))
+
+# Pool results
+pooled <- pool(models)
+summary(pooled)
+```
+
+# Sensitivity Analysis
+
+```{r sensitivity}
+# Complete case mean
+cc_mean <- df |> drop_na(income) |> summarise(mean_income = mean(income))
+
+
+```
+
+
+
+
+# Exercises
+
+  1. Explore missingness patterns in the `NHANES` dataset. Which variables are most affected?
+  2. Compare results of a regression model (`BMI ~ Age + Gender`) under:
+  - complete-case analysis,
+- mean imputation,
+- multiple imputation.
+3. Discuss: What assumptions are you making under each approach?
+
+
+# Conclusion
+
+  - Missingness can bias estimates if ignored.
+- Mechanisms (MCAR/MAR/MNAR) determine what methods are valid.
+- Naïve fixes are often misleading.
+- Multiple imputation and likelihood-based methods are modern, principled approaches.
