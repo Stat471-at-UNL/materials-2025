@@ -1,6 +1,6 @@
 ---
 title: "Imputing Missing Values"
-date: '2025-10-01'
+date: '2025-10-07'
 engine: knitr
 type: slides
 categories:
@@ -91,6 +91,12 @@ Some of the ozone measurements are missing
 ```{r}
 summary(airquality$Ozone)
 ```
+Little's test shows that we reject the hypothesis of MCAR:
+
+```{r}
+mcar_test(airquality)
+```
+# 
 
 How should we impute the Ozone values?
 
@@ -129,49 +135,130 @@ ggpairs(data = airquality_imp |> select(-Ozone_pred, -Ozone),
         mapping = aes(colour = imputed)) 
 ```
 
+# But - Variability is still affected
+
+```{r}
+mean(airquality$Ozone, na.rm=TRUE)
+mean(airquality_imp$Ozone_imp)
+```
+```{r}
+sd(airquality$Ozone, na.rm=TRUE)
+sd(airquality_imp$Ozone_imp)
+```
+... increase by using samples from the linear model rather than predictions
 
 # Idea for Predictive Mean Matching
 
+Assume Y is variable with missing values, X are covariates with observed data
 
+- Fit regression $Y = X\beta + \epsilon$.
+
+- Predict missing values $\widehat{Y}_i$ from the model.
+
+- Get predictions $\widehat{Y}_i$ for observed values $Y_i$. 
+
+- Find nearest neighbors: for each missing value find $k$ closest neighbors based on prediction.
+
+- Randomly draw one of the $k$ observed values $Y$ for the missing value.
 
 # Multiple Imputation with `mice`
 
-```{r mice}
+```{r airmice}
 # Run multiple imputation
-imp <- mice(df, m = 5, method = "pmm", seed = 202509)
+air_imp <- mice(airquality, m = 5, method = "pmm", seed = 202509)
 
 # Completed datasets
-completed_list <- complete(imp, "all") |> map(as_tibble)
+completed_list <- complete(air_imp, "all") |> map(as_tibble)
+```
+All analysis are done on each of the data sets, results are then pooled across.
 
+# Analyse airquality
+
+```{r}
 # Example: regression model
-models <- map(completed_list, ~ lm(income ~ age + group, data = .x))
+models <- map(completed_list, ~ lm(Ozone ~ Wind + Temp, data = .x))
 
 # Pool results
 pooled <- pool(models)
 summary(pooled)
 ```
 
-# Sensitivity Analysis
+```{r}
+summary(lm(Ozone ~ Wind + Temp, data = airquality))
+```
 
-```{r sensitivity}
-# Complete case mean
-cc_mean <- df |> drop_na(income) |> summarise(mean_income = mean(income))
+# Choice of $k$
+
+The choice of $k$ (number of neighbors) affects variability:
+
+- Small $k$ result in closer matches, less variance.
+
+- Larger $k$ result in more randomness, higher variance.
 
 
+# Your Turn {background-color="#006666"}
+
+Use the NHANES data to try out predictive matching for imputing missing values.
+
+The variable `AgeMonths` in the data set is not recorded in one of the Survey years except for infants.
+Use `mice` to use predictive matching to impute missing values in all of the age variables
+
+For one of the complete datasets, plot Age against the age at which the participant had their first baby (`Age1stBaby`). What do you find?
+
+Set up a linear model of `AgeMonths` in `Age` and summarize the results. Do those results make sense?
+
+# 
+
+```{r miceNHANES}
+library(NHANES)
+imp_age <- mice(NHANES |> select(contains("Age")), m=5, method= "pmm", seed = 202510)
+
+
+# Completed datasets
+completed_list <- complete(imp_age, "all") |> map(as_tibble)
+
+NHANES |> ggplot(aes(x = Age, y = Age1stBaby)) + geom_jitter() + facet_wrap(~Gender)
+
+NHANES |> ggplot(aes(x = Age, y = Age1stBaby)) + geom_jitter() + facet_wrap(~Gender) + 
+  geom_point(aes(colour = "Imputed"), data = completed_list[[1]])
+
+
+# Now check: is AgeMonths about 12 x Age?
+models <- map(completed_list, ~ lm(AgeMonths ~ Age, data = .x))
+
+# Pool the models
+pooled <- pool(models)
+summary(pooled) # yes :)
 ```
 
 
+# Your Turn {background-color="#006666"}
 
+For the `NHANES` data:
 
-# Exercises
-
-  1. Explore missingness patterns in the `NHANES` dataset. Which variables are most affected?
-  2. Compare results of a regression model (`BMI ~ Age + Gender`) under:
+1. Compare results of a (polynomial of degree 2) regression model (`BMI ~ Age + Gender`) under:
   - complete-case analysis,
-- mean imputation,
-- multiple imputation.
+  - mean imputation,
+  - multiple imputation.
+
 3. Discuss: What assumptions are you making under each approach?
 
+
+#
+
+```{r}
+bmi_complete <- lm(BMI ~ poly(Age,2)*Gender, data = NHANES)
+dframe <- data.frame(expand.grid(Age = 0:80, Gender=c("female", "male")))
+dframe$pred <- predict(bmi_complete, newdata = dframe)
+NHANES |> ggplot(aes(x = Age, y = BMI)) + facet_wrap(~Gender) + 
+  geom_point() + 
+  geom_line(aes(x = Age, y = pred), colour = "#d00000", linewidth = 1.5, data = dframe)
+```
+
+```{r}
+NHANES |> select(BMI, Age) |> summary()
+
+```
 
 # Conclusion
 

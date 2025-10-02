@@ -1,7 +1,7 @@
 ---
 title: 'Homework 5: Outlier Tests'
 type: Homework
-date: '2025-10-01'
+date: '2025-10-09'
 categories:
 - HW
 - Week06

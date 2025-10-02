@@ -1,6 +1,6 @@
 ---
 title: "Working with Missing Values - Overview"
-date: '2025-09-30'
+date: '2025-10-02'
 engine: knitr
 type: slides
 categories:
@@ -209,7 +209,7 @@ very difficult to analyze!
 
 - Let $y \in R^{n \times p}$ be the data and $r \in \{0,1\}^{n \times p}$ the corresponding shadow matrix, i.e. $r_{ij} = 1$ iff $y_{ij}$ is missing.
 
-- Identify all $J$ patterns of missing values $(1 \le J \le 2^p)$ with the corresponding frequencies $n_j$. The fully observed sample is one of the patterns, i.e. $\sum_{j=1}^J n_j = n$. 
+- Identify all $J$ patterns of missing values $(1 \le |J| \le 2^p)$ with the corresponding frequencies $n_j$. The fully observed sample is one of the patterns, i.e. $\sum_{j=1}^J n_j = n$. 
 
 - For each pattern count the number of observed variables $p_j, (0 \le p_j \le p, 1 \le j \le J).$
 
@@ -219,7 +219,7 @@ very difficult to analyze!
 Consider the scaled deviation from the means as Test statistic:
 
 $$
-T^2 = \sum_{j=1}^J n_j (\bar{y}_{obs, j} - \mu_{obs})^t \Sigma^{-1}_{obs, j} (\bar{y}_{obs, j} - \mu_{obs})
+T^2 = \sum_{j=1}^J n_j (\bar{y}_{obs, j} - \mu_{obs, j})^t \Sigma^{-1}_{obs, j} (\bar{y}_{obs, j} - \mu_{obs, j})
 $$
 
 If the observed data $y$ are multivariate normal with mean $\mu$ and variance-covariance $\Sigma$, the following holds
