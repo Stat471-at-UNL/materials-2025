@@ -24,6 +24,7 @@ execute:
 
 ```{r}
 library(tidyverse)
+library(patchwork)
 ```
 
 
@@ -134,7 +135,7 @@ E[y_i \mid y_i \text{ observed}] &=& E[y_i \mid r^*_i > 0]\\
 &=& x_i\beta + \rho\sigma \underbrace{\frac{\phi(w_i\gamma)}{\Phi(w_i\gamma)}}_{\text{inverse Mills ratio}}
 \end{eqnarray*}
 $$
-i.e. only if $\rho > 0$, the expectation of $Y$ is affected by missing values.
+i.e. only if $\rho \neg 0$, the expectation of $Y$ is affected by missing values.
 
 Then use ML Estimates for jointly estimating $\beta, \rho, \sigma, \gamma$.
 
@@ -193,17 +194,24 @@ dframe <- dframe |> mutate(
 
 # Selection and Outcome
 
+
+
 ```{r}
-dframe |> arrange(desc(type)) |>
+ggsel <- dframe |> ggplot(aes(x = x1, y=x2*.8+u, colour =type)) + 
+  geom_point() + theme_bw() + 
+  scale_colour_manual(values=c("darkorange", "steelblue")) +
+  ggtitle("Selection Model")
+ggout <- dframe |> arrange(desc(type)) |>
   ggplot(aes(x = x1, y = y)) +
   geom_point(aes(color = type), size = 3, alpha = 0.5) + 
   theme_bw() +
   geom_smooth(aes(color = type),
               method="lm", se=F, linewidth=2,
               data = dframe |> filter(type=="Observed")) +
-  geom_smooth(method="lm", group=1, se=F,
-              data = dframe, aes(colour="Full Sample")) +
-  scale_colour_manual(values=c("grey40", "darkorange", "steelblue"))
+  geom_abline(slope=0.7, intercept = 2, aes(colour="True Line")) +
+  scale_colour_manual(values=c("grey40", "darkorange", "steelblue")) +
+  ggtitle("Outcome Model")
+ggsel+ ggout
 ```
 
 # Fit Parameters $\varepsilon, u, \rho, \sigma$
