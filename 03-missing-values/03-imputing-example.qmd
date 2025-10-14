@@ -1,0 +1,281 @@
+---
+title: "MAR or MNAR?"
+date: '2025-10-14'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week09
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+execute:
+  error: true
+  eval: true
+  echo: false
+  message: false
+  warning: false
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+# Practical clues for MNAR
+
+1. Suspicious dependence on the missing variable itself
+
+- Example: Higher-income respondents tend not to report income.
+
+  Raises suspicion:
+
+  The variable’s missing rate increases with values of related proxies (e.g., luxury spending, occupation).
+
+  Conditioning on observed covariates doesn't resolve all missingness patterns
+
+# Practical clues for MNAR (2)
+
+2. Strong deviations from expected distributions
+
+  Compare distributions of observed vs imputed (under MAR) values.
+
+  If imputed values under MAR seem implausible (e.g., unrealistically low variance), MNAR might be at play.
+
+3. External knowledge or theory
+
+You often detect MNAR based on domain expertise — e.g., people tend to underreport sensitive information.
+
+# Statistical Approaches to determine MNAR
+
+4. Patterns in the missingness indicator
+
+Create Indicator variable $R_i$
+
+Model R as a function of other variables using logistic regression:
+
+$$
+\text{logit } P(R = 1 \mid X) = X\beta
+$$
+ 'unexplained' pattern in residual may signal MNAR. 
+
+# Statistical strategies to probe MNAR
+
+1. Sensitivity analysis
+
+Fit models assuming MAR, then perturb the imputation model (e.g., add a shift to imputed values) to see if results change substantially.
+
+Large sensitivity signals MNAR
+
+2. Selection models (Heckman-type)
+
+Jointly model the outcome and the missingness indicator.
+
+# Heckman-type Selection Models
+
+Situation: 
+
+$$
+Y = X\beta + \varepsilon
+$$
+Assume that ther *might* be some individuals that choose not to answer $Y$, i.e. the probability for a missing value in $Y$ *might* depend on its value. 
+
+This introduce a **selection bias** into the observed sample.
+
+Heckman selection model corrects for this bias by modelling (1) the selection process *and* (2) the outcome simultaneously.
+
+# Selection Model
+
+Let $R$ be the shadow variable of $Y$, i.e. $R_i = 1$ if $Y$ is observed and $R_i = 0$ if $Y$ is missing. 
+
+Let us assume that $R^*$ is a latent process with $R^* > 0 \Rightarrow R=1$ and $R^* < 0 \Rightarrow R=0$.  
+Assume that we can model $R^*$ as 
+
+$$
+R^* = Z\gamma + u
+$$
+For some covariate $Z$ and error $u$. We assume $u \sim N(0,1)$
+
+# Outcome Model
+
+Consider the original model in question
+
+$$
+Y = X\beta + \varepsilon
+$$
+$Y$ is only observed when $R=1$, i.e. $R^* > 0$
+
+Assume $\varepsilon$ and $u$ are jointly normal:
+
+$$\begin{pmatrix} \varepsilon \\u\end{pmatrix}\sim N\left(
+\begin{pmatrix}
+0 \\0
+\end{pmatrix},
+\begin{pmatrix}
+\sigma^{2} & \rho\sigma \\
+\rho\sigma & 1
+\end{pmatrix}
+\right)$$
+
+# Relationship of Selection & Outcome Model
+
+Then conditional expectation of $Y$ is:
+
+$$
+\begin{eqnarray*}
+E[y_i \mid y_i \text{ observed}] &=& E[y_i \mid r^*_i > 0]\\
+&=&E[y_i \mid u_i > - z_i\gamma]\\
+&=& x_i\beta + E[\varepsilon_i \mid  u_i > - z_i\gamma]\\
+&=& x_i\beta + \rho\sigma \underbrace{\frac{\phi(w_i\gamma)}{\Phi(w_i\gamma)}}_{\text{inverse Mills ratio}}
+\end{eqnarray*}
+$$
+i.e. only if $\rho > 0$, the expectation of $Y$ is affected by missing values.
+
+Then use ML Estimates for jointly estimating $\beta, \rho, \sigma, \gamma$.
+
+# Simulation example
+
+:::: {.columns}
+
+::: {.column width="48%"}
+
+```{r echo=TRUE}
+set.seed(202510)
+
+# Simulate data
+n <- 1000
+rho <- 0.6
+
+dframe <- data.frame(
+ x1 = rnorm(n), 
+ x2 = rnorm(n),
+ u = rnorm(n),
+ eps = rnorm(n)
+) |> mutate( # correlate the errors
+  eps = rho*u + sqrt(1 - rho^2)*eps
+)
+
+
+```
+:::
+
+::: {.column width="4%"}
+<!-- empty column to create gap -->
+:::
+
+::: {.column width="48%"}
+
+```{r echo=TRUE}
+# Selection model
+
+dframe <- dframe |> mutate(
+  r_star = 0.5 * x1 + 0.8 * x2 + u,
+  r = ifelse(r_star > 0, 1, 0)
+)
+
+# Outcome model (only observed if r==1)
+dframe <- dframe |> mutate(
+  y = 2 + 0.7*x1 + eps,
+  y_obs = ifelse(r == 1, y, NA), # censored values
+  type = ifelse(r==0, "Unobserved", "Observed")
+)
+
+```
+
+:::
+
+::::
+
+# Selection and Outcome
+
+```{r}
+dframe |> arrange(desc(type)) |>
+  ggplot(aes(x = x1, y = y)) +
+  geom_point(aes(color = type), size = 3, alpha = 0.5) + 
+  theme_bw() +
+  geom_smooth(aes(color = type),
+              method="lm", se=F, linewidth=2,
+              data = dframe |> filter(type=="Observed")) +
+  geom_smooth(method="lm", group=1, se=F,
+              data = dframe, aes(colour="Full Sample")) +
+  scale_colour_manual(values=c("grey40", "darkorange", "steelblue"))
+```
+
+# Fit Parameters $\varepsilon, u, \rho, \sigma$
+
+```{r echo=TRUE}
+library(sampleSelection)
+# Fit Heckman selection model
+model <- selection(selection = r ~ x1 + x2,
+                   outcome   = y_obs ~ x1,
+                   data = dframe)
+```
+
+# 
+
+```{r}
+summary(model)
+```
+
+# NHANES Data Example
+
+Consider the NHANES data from the R package `NHANES`. The variable `AlcoholDay` is the number of average drinks US adults (age 18 and older) report drinking
+
+Underage drinking is associated with increased non-response rates. What can we say about the extent of underage drinking?
+
+```{r}
+library(NHANES)
+NHANES <- NHANES |> filter(Age >= 18) |>
+    mutate(Underage=Age<=21,
+           ADnonmissing=ifelse(is.na(AlcoholDay), 0, 1))
+
+NHANES |> filter(Age >=18) |>
+  ggplot(aes(x = Age, fill = is.na(AlcoholDay))) + 
+  geom_histogram(binwidth=1)
+```
+
+# Extent of Underage Drinking 
+
+Model based on observed data only: 
+
+```{r}
+summary(lm(AlcoholDay~Underage, data = NHANES))
+```
+# Extent of Underage Drinking
+
+Heckman Selection Model: what factors impact non-report of alcohol days?
+
+# Impact of Age on Non-reports
+
+Low age: high non-reports; higher non-reports with increase in Age
+
+```{r}
+NHANES |> ggplot(aes(Age, fill = is.na(AlcoholDay))) + 
+  geom_histogram(binwidth = 1)
+
+NHANES |> ggplot(aes(Age, fill = is.na(AlcoholDay))) + 
+    geom_histogram(binwidth = 1, position = "fill")
+```
+
+Model as linear term with interaction of `Underage`
+
+#
+
+```{r}
+model <- selection(
+  selection = ADnonmissing ~  Age + BMI + Testosterone + TotChol,
+  outcome   = AlcoholDay ~ Underage,
+  data = NHANES)
+
+
+```
+#
+
+```{r}
+summary(model)
+```

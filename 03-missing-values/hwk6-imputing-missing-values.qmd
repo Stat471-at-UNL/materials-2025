@@ -1,0 +1,13 @@
+---
+title: 'Homework 6: Imputing Missing Values'
+type: Homework
+date: '2025-10-16'
+categories:
+- HW
+- Week06
+---
+
+Note: This assignment must be accepted in Canvas and submitted in github classroom.
+
+{{< include ../../homework-repos/homework-6-imputing-nhanes/README.md >}}
+
