@@ -135,7 +135,7 @@ E[y_i \mid y_i \text{ observed}] &=& E[y_i \mid r^*_i > 0]\\
 &=& x_i\beta + \rho\sigma \underbrace{\frac{\phi(w_i\gamma)}{\Phi(w_i\gamma)}}_{\text{inverse Mills ratio}}
 \end{eqnarray*}
 $$
-i.e. only if $\rho \neg 0$, the expectation of $Y$ is affected by missing values.
+i.e. only if $\rho \neq 0$, the expectation of $Y$ is affected by missing values.
 
 Then use ML Estimates for jointly estimating $\beta, \rho, \sigma, \gamma$.
 
@@ -203,13 +203,13 @@ ggsel <- dframe |> ggplot(aes(x = x1, y=x2*.8+u, colour =type)) +
   ggtitle("Selection Model")
 ggout <- dframe |> arrange(desc(type)) |>
   ggplot(aes(x = x1, y = y)) +
-  geom_point(aes(color = type), size = 3, alpha = 0.5) + 
+  geom_point(aes(color = type)) + 
   theme_bw() +
   geom_smooth(aes(color = type),
               method="lm", se=F, linewidth=2,
               data = dframe |> filter(type=="Observed")) +
-  geom_abline(slope=0.7, intercept = 2, aes(colour="True Line")) +
-  scale_colour_manual(values=c("grey40", "darkorange", "steelblue")) +
+  geom_abline(slope=0.7, intercept = 2, aes(color="True Line")) +
+  scale_colour_manual(values=c( "darkorange", "steelblue", "grey40")) +
   ggtitle("Outcome Model")
 ggsel+ ggout
 ```
@@ -263,27 +263,43 @@ Heckman Selection Model: what factors impact non-report of alcohol days?
 Low age: high non-reports; higher non-reports with increase in Age
 
 ```{r}
-NHANES |> ggplot(aes(Age, fill = is.na(AlcoholDay))) + 
+gg1 <- NHANES |> ggplot(aes(Age, fill = is.na(AlcoholDay))) + 
   geom_histogram(binwidth = 1)
 
-NHANES |> ggplot(aes(Age, fill = is.na(AlcoholDay))) + 
+gg2 <- NHANES |> ggplot(aes(Age, fill = is.na(AlcoholDay))) + 
     geom_histogram(binwidth = 1, position = "fill")
+gg1/gg2
 ```
 
-Model as linear term with interaction of `Underage`
+Model as linear term - we expect a negative parameter
 
-#
+# Impact of Testosterone on Non-reports
+
+Low age: high non-reports; higher non-reports with increase in Age
 
 ```{r}
+gg1 <- NHANES |> ggplot(aes(Testosterone, fill = is.na(AlcoholDay))) + 
+  geom_histogram()
+
+gg2 <- NHANES |> ggplot(aes(Testosterone, fill = is.na(AlcoholDay))) + 
+    geom_histogram(position = "fill")
+gg1/gg2
+```
+
+Model as linear term - we expect a positive parameter
+
+# Selection & Outcome Model
+
+```{r echo=TRUE}
 model <- selection(
   selection = ADnonmissing ~  Age + BMI + Testosterone + TotChol,
   outcome   = AlcoholDay ~ Underage,
   data = NHANES)
-
-
 ```
+
 #
 
 ```{r}
 summary(model)
 ```
+
