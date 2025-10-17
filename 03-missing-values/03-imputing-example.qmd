@@ -273,6 +273,21 @@ gg1/gg2
 
 Model as linear term - we expect a negative parameter
 
+# Code for making Histogram/Spinogram
+
+```{r echo=TRUE, eval = FALSE}
+library(patchwork)
+gg1 <- NHANES |> ggplot(aes(Age, fill = is.na(AlcoholDay))) + 
+  geom_histogram(binwidth = 1)
+
+gg2 <- NHANES |> ggplot(aes(Age, fill = is.na(AlcoholDay))) + 
+    geom_histogram(binwidth = 1, position = "fill")
+
+# place plots on top of each other (this uses patchwork)
+gg1/gg2
+
+```
+
 # Impact of Testosterone on Non-reports
 
 Low age: high non-reports; higher non-reports with increase in Age

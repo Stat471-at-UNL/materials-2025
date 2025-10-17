@@ -17,8 +17,8 @@ library(visdat)
 vis_miss(NHANES) +
   scale_x_discrete(expand=FALSE, position="top") +
   theme(axis.text.x.top = element_text(vjust=0, angle =90))
-Visual Exploration of Missingness Patterns
-Upset plot: variables are connected when they are jointly missing
+#Visual Exploration of Missingness Patterns
+#Upset plot: variables are connected when they are jointly missing
 
 df |> gg_miss_upset()
 

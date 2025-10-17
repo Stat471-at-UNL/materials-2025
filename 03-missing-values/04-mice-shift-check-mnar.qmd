@@ -1,0 +1,133 @@
+---
+title: "Sensitivity Analysis with `mice`"
+date: '2025-10-23'
+engine: knitr
+type: slides
+categories:
+  - slides
+  - Week10
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+logo: ../../N.svg
+includes:
+  in_header: ../../header.html
+execute:
+  error: true
+  eval: true
+  echo: false
+  message: false
+  warning: false
+---
+
+# Sensitivity Analysis: MAR vs MNAR
+
+Idea of $\delta$-method:
+provide  controlled way to simulate MNAR conditions by shifting imputed values systematically by $\delta$:
+  
+$$
+Y_{\text{imp, }\delta} = Y_\text{pmm} + \delta
+$$
+Positive $\delta$: assume that missing values correspond to systematically  higher values
+
+Negative $\delta$: assume that missing values correspond to systematically  lower values
+
+# Investigate Impact
+
+
+1. Run your analysis under MAR ($\delta$ = 0).
+
+2. Run analysis again under plausible MNAR scenarios (e.g., $\delta = −1, −2, +1$).
+
+3. Conclude potential MNAR concern, if key conclusions change a lot.
+
+# Example
+
+NHANES data from `NHANES` package: 
+
+```{r warning = FALSE, message=FALSE, echo=TRUE}
+# Load packages
+library(tidyverse)
+library(mice)
+library(NHANES)
+
+# Only consider records for age 18 and higher:
+NHANES <- NHANES |> filter(Age >= 18) |>
+  mutate(Age = Age - 18)
+
+# Create missingness indicator 
+NHANES$miss_alcdays <- is.na(NHANES$AlcoholDay)
+```
+
+# Sensitivity analysis under MAR vs MNAR assumptions
+
+Imputation under MAR: 
+
+```{r echo=TRUE, include=FALSE}
+imp_mar <- mice(NHANES |> select(Age, Gender, AlcoholDay, BMI, Testosterone, HHIncomeMid, TotChol) |> mutate(UnderAge = Age < 21), m = 5, method = "pmm", seed = 123)
+```
+
+```{r}
+summary(pool(with(imp_mar, lm(AlcoholDay ~ Gender-1 + Age:Gender))))
+```
+
+# 
+Imputation under MNAR assumption:
+
+Suppose missing AlcoholDay values are 2 units *higher* than predicted
+
+```{r}
+method <- make.method(NHANES |> select(AlcoholDay, Gender, SurveyYr, BMI, Age, HHIncomeMid, TotChol, Testosterone))
+
+delta <- rep(0, ncol(NHANES |> select(AlcoholDay, Gender, SurveyYr, BMI, Age, HHIncomeMid, TotChol, Testosterone)))
+names(delta) <- names(NHANES |> select(AlcoholDay, Gender, SurveyYr, BMI, Age, HHIncomeMid, TotChol, Testosterone))
+```
+
+```{r echo = TRUE, eval = FALSE}
+delta["AlcoholDay"] <- 2  # shift imputed values upward
+
+imp_mnar <- mice(NHANES |> select(AlcoholDay, Gender, SurveyYr, BMI, Age, HHIncomeMid, TotChol, Testosterone),
+                 method = method, delta = delta, seed = 123)
+```
+
+```{r include=FALSE}
+delta["AlcoholDay"] <- 2  # shift imputed values upward
+
+imp_mnar <- mice(NHANES |> select(AlcoholDay, Gender, SurveyYr, BMI, Age, HHIncomeMid, TotChol, Testosterone),
+                 method = method, delta = delta, seed = 123)
+```
+
+
+```{r}
+summary(pool(with(imp_mnar, lm(AlcoholDay ~ Gender-1 + Age:Gender))))
+```
+
+
+# Compare Results
+
+
+large differences between MAR and MNAR estimates suggest sensitivity to MNAR assumption. 
+
+provides indirect evidence that MNAR may be present.
+
+In the example: not much evidence for MNAR
+
+```{r}
+est_mar  <- summary(pool(with(imp_mar, lm(AlcoholDay ~ Gender-1 + Age:Gender))))$estimate
+est_mnar <- summary(pool(with(imp_mnar, lm(AlcoholDay ~ Gender-1 + Age:Gender))))$estimate
+
+comparison <- data.frame(
+  Term = rownames(summary(pool(with(imp_mar, lm(AlcoholDay ~ Gender-1 + Age:Gender))))),
+  Estimate_MAR  = round(est_mar, 3),
+  Estimate_MNAR = round(est_mnar, 3),
+  Difference = round(est_mnar - est_mar, 3),
+  Log.Rel.Diff = round(log(est_mnar / est_mar), 3)
+)
+
+print(comparison)
+```
+
+
+```
