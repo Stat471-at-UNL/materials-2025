@@ -1,0 +1,154 @@
+---
+title: "Probabilistic Record Linkage"
+date: '2025-10-23'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week09
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+execute:
+  error: true
+  eval: true
+  echo: false
+  message: false
+  warning: false
+---
+
+```{r setup}
+library(tidyverse)
+library(stringdist)
+```
+
+
+```{r}
+
+# Dataset A: census type data
+df_a <- tibble(
+  id_a = 1:6,
+  first = c("John", "Katherine", "Robert", "Maria", "William", "Alicia"),
+  last  = c("Smith", "Jones", "Brown", "Lopez", "Chen", "Mendez"),
+  birth_year = c(1985, 1978, 1990, 1988, 1983, 1991),
+  city = c("Lincoln", "Omaha", "Grand Island", "Kearney", "Norfolk", "Lincoln")
+)
+
+# Dataset B: voter registration data with typos and variant spellings
+df_b <- tibble(
+  id_b = 101:108,
+  first = c("Jon", "Kathy", "Rob", "Maria", "Will", "Alisha", "Laura", "Robert"),
+  last  = c("Smyth", "Jones", "Brown", "Lopes", "Chen", "Mendez", "King", "Brown"),
+  birth_year = c(1985, 1978, 1990, 1988, 1983, 1991, 1992, 1990),
+  city = c("Lincon", "Omaha", "Grand Island", "Kearny", "Norfolk", "Lincoln", "Omaha", "Grand Island")
+)
+```
+
+# Probabilistic Matching
+
+Two main issues:
+
+1. Inconsistencies e.g., "Katherine Smith" vs. "K. Smith" vs "Kate Smith"
+
+2. Errors and missing data e.g., typos, formatting differences, or incomplete fields.
+
+
+Goal: 
+
+For each pair of records, determine: (1) **Match** (same entity), (2) **Do not match**, or (3) **uncertain**
+
+
+# Fellegi and Sunter
+
+1. Comparison of fields
+2. Model match probabilities
+3. Use Thresholds to determine matches
+
+
+# Step 1. Comparison of fields
+
+For each pair of records, we compare corresponding fields (e.g., name, date of birth, ZIP code) and create **comparison vectors**:
+
+$$
+\gamma = (\gamma_1, \gamma_2, ..., \gamma_k)
+$$
+
+Each $\gamma_i$ measures the level of agreement for field $i$.
+
+| Field | Record A | Record B | Comparison |
+|--------|-----------|-----------|-------------|
+| First name | "Jon" | "John" | Partial |
+| Last name | "Doe" | "Doe" | Exact |
+| Birth year | 1982 | 2010 | Disagree |
+
+
+#  Step 2. Model match probabilities
+
+
+Each pair of records belongs to one of two latent groups:
+$M$: the **match set**, $U$: the **non-match set**
+
+$$
+P(\gamma) = P(\gamma \mid M) P(M) + P(\gamma \mid U) P(U)
+$$
+
+where
+
+- $P(\gamma \mid M)$: probability of observing agreements among *true matches*  
+- $P(\gamma \mid U)$: probability of observing agreements among *non-matches*  
+- $P(M)$ and $P(U) = 1 - P(M)$: prior probabilities of match / non-match.
+
+
+# EM Algorithm
+
+True match status is unobserved; use Expectation–Maximization (EM) algorithm:
+
+1. **E-step:**  
+   Estimate match memberships $P(M \mid \gamma)$ for each pair given current parameters.
+
+2. **M-step:**  
+   Update $m_j = P(\gamma_j \mid M), u_j = P(\gamma_j \mid U), P(M)$ based on expected match memberships.
+
+Iterate until convergence.
+
+# Step 3: Posterior Probabilities and Thresholding
+
+Posterior match probabilities for each pair:
+
+$$
+P(M \mid \gamma) = \frac{P(\gamma \mid M) P(M)}{P(\gamma \mid M) P(M) + P(\gamma \mid U) P(U)}
+$$
+
+Use decision threshold to classify matches, e.g. any records with $P(\gamma \mid M)$  above $T_U$ are matches, any records below $T_L$ are non-matches.
+
+Quantify uncertainty: e.g. trigger manual review for pairs that have posterior probabilities in $[T_L, Y_U]$.
+
+# Example with `fastLink`
+
+The `fastLink` package output provides **posterior probabilities** for all record pairs.  
+
+
+```{r echo=TRUE}
+library(fastLink)
+
+fl_out <- fastLink(
+  dfA = df_a,
+  dfB = df_b,
+  varnames = c("first", "last", "birth_year", "city"),
+  stringdist.match = c("first", "last", "city"),
+  numeric.match = c("birth_year"),
+  partial.match = c("first", "last", "city","birth_year")
+)
+```
+#
+
+```{r}
+matches <- getMatches(df_b, df_a, fl_out)
+matches %>%
+  arrange(desc(posterior)) 
+```

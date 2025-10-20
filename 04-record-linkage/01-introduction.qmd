@@ -1,0 +1,242 @@
+---
+title: "Deterministic Record Linkage"
+date: '2025-10-23'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week09
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+execute:
+  error: true
+  eval: true
+  echo: false
+  message: false
+  warning: false
+---
+
+```{r setup}
+library(tidyverse)
+library(stringdist)
+library(Lahman)
+data("LahmanData")
+```
+
+# Intro to Statistical Record Linkage
+
+**Record linkage**: identify records that refer to the same entity
+ across different datasets 
+ 
+ 
+**Deterministic linkage**: Exact matches on one or more key fields (e.g., SSN) 
+
+**Probabilistic linkage**: Uses statistical models and similarity scores  
+
+# Examples
+
+- Linking records from hospital and insurance for the same patient  
+- Match voter registrations across states  
+- Combine data from different sources where names are noisy or incomplete  
+ 
+
+# Deterministic Linkage
+ 
+If entities are recorded with the same IDs (e.g. country codes, license plates, SSNs) we can join by those values.
+
+Normalized data bases often include IDs
+
+Use joins (`join_left`, `join_inner`, `join_full`) to combine these data sets
+
+# Your Turn {background-color="#006666"}
+
+The package `Lahman` is an R data package consisting of `r nrow(LahmanData)`
+data sets detailing different aspects of baseball.
+
+
+- Identify the players inducted into the Hall of Fame in 2025 by name
+
+- How often was each of the inductees on the ballot before? 
+
+#
+
+```{r}
+inductees25 <- HallOfFame |> filter(yearID==2025, inducted=="Y", category == "Player") |>
+  left_join(People |> select(nameFirst, nameLast, playerID))
+inductees25
+
+HallOfFame |> filter(playerID %in% inductees25$playerID) |> group_by(playerID) |>
+  count() |> arrange(desc(n))
+
+```
+
+# Fuzzy Matching
+
+approximate matching of strings $s$ and $t$
+
+Different algorithms based around type of errors: 
+e.g. Jaro-Winkler, Jaccard (common elements), Levenshtein (insertions, deletions),
+Damerau–Levenshtein (also transpositions), Hammond (needs strings of equal length)
+
+choose based on which errors most likely occur
+
+
+# Jaro-Winkler String similarity
+
+For two (character) strings $s_1$ and $s_2$ the *Jaro* similarity is defined as 
+
+$$
+J(s_1,s_2) = \frac{1}{3} \left( \frac{m}{|s_1|} + \frac{m}{|s_2|} + \frac{m-t}{m}\right),
+$$
+if there are at least $m > 0$ matching characters between $s_1$ and $s_2$;
+
+$|s_i|$ is the number of the characters in string $s_i$.
+
+$t$ is the number of transpositions (characters that are at most $\left\lfloor {\frac {\max(|s_{1}|,|s_{2}|)}{2}}\right\rfloor -1$ positions apart)
+
+# Winkler adjustment
+
+Emphasize beginning of words
+
+$$
+JW(s_1, s_2) = J(s_1, s_2) + \ell p \left (1 - J(s_1, s_2) \right)
+$$
+
+- $\ell$ is length of common prefix at the start (up to 4 characters)
+
+- $p$ scaling factor for upwards adjustment of score for common prefixes (should not exceed $1/\ell$); usually set to $p=0.1$. 
+
+Note that JW distance is not a proper distance (no triangle property)
+
+
+# Jaro-Winkler Properties
+
+$JW(s,t) \in [0,1]$; larger values indicate higher similarity
+
+Implemented in package `stringdist` as `stringdist` with `method = "jw"`
+
+
+```{r echo=TRUE}
+1 - stringdist::stringdist("Halo", "Hello", method = "jw")
+1 - stringdist::stringdist("frist", "first", method = "jw")
+```
+
+
+# First Example
+
+```{r}
+
+# Dataset A: census type data
+df_a <- tibble(
+  id_a = 1:6,
+  first = c("John", "Katherine", "Robert", "Maria", "William", "Alicia"),
+  last  = c("Smith", "Jones", "Brown", "Lopez", "Chen", "Mendez"),
+  birth_year = c(1985, 1978, 1990, 1988, 1983, 1991),
+  city = c("Lincoln", "Omaha", "Grand Island", "Kearney", "Norfolk", "Lincoln")
+)
+
+# Dataset B: voter registration data with typos and variant spellings
+df_b <- tibble(
+  id_b = 101:108,
+  first = c("Jon", "Kathy", "Rob", "Maria", "Will", "Alisha", "Laura", "Robert"),
+  last  = c("Smyth", "Jones", "Brown", "Lopes", "Chen", "Mendez", "King", "Brown"),
+  birth_year = c(1985, 1978, 1990, 1988, 1983, 1991, 1992, 1990),
+  city = c("Lincon", "Omaha", "Grand Island", "Kearny", "Norfolk", "Lincoln", "Omaha", "Grand Island")
+)
+```
+
+:::: {.columns}
+
+::: {.column width="48%"}
+Census type data
+
+```{r class.output='small'}
+#| code-block-border-left: "#31BAE9"
+df_a
+```
+:::
+::: {.column width="4%"}
+:::
+::: {.column width="48%"}
+Voter registration type data
+
+```{r class.output='small'}
+df_b
+```
+:::
+
+:::::
+
+
+# Create Pairs of Records for each Variable
+
+```{r echo=TRUE}
+pairs_first <- data.frame(expand.grid(first_a = unique(df_a$first), first_b = unique(df_b$first)))
+pairs_last <- data.frame(expand.grid(last_a = unique(df_a$last), last_b = unique(df_b$last)))
+pairs_city <- data.frame(expand.grid(city_a = unique(df_a$city), city_b = unique(df_b$city), stringsAsFactors = FALSE))
+pairs_years <- data.frame(expand.grid(birth_year_a = unique(df_a$birth_year), birth_year_b = unique(df_b$birth_year)))
+```
+
+
+
+
+
+# Calculate distance between pairs
+
+Jaro-Winkler in package `stringdist` as `stringdist` with `method = "jw"`
+
+
+```{r echo=TRUE}
+pairs_first <- pairs_first |> mutate(
+  sim = 1 - stringdist(first_a, first_b, method = "jw")
+)
+pairs_first |> arrange(desc(sim))
+```
+
+# Introduce Thresholds
+
+```{r echo=TRUE}
+pairs_last <- pairs_last |> mutate(
+  sim = 1 - stringdist(last_a, last_b, method = "jw")
+)
+
+pairs_city <- pairs_city |> mutate(
+  sim = 1 - stringdist(city_a, city_b, method = "jw")
+)
+```
+
+and introduce thresholds:
+
+```{r echo=TRUE}
+pairs_first <- pairs_first |> mutate(match = sim > 0.6)
+pairs_last <- pairs_last |> mutate(match = sim > 0.8)
+pairs_city <- pairs_city |> mutate(match = sim > 0.9)
+```
+
+# Example: apply thresholds to combined data
+
+Stratify on birth year:
+
+```{r echo = TRUE}
+df_ab <- df_a |> full_join(df_b, by="birth_year", suffix = c("_a", "_b"))
+df_ab <- df_ab |> 
+  left_join(pairs_first |> select(-sim, match_first = match))  |>
+  left_join(pairs_last |> select(-sim, match_last = match))  |>
+  left_join(pairs_city |> select(-sim, match_city = match))  |>
+  rowwise() |>
+  mutate(
+    overall = sum(match_first + match_last + match_city)
+  )
+```
+#
+
+```{r}
+df_ab
+```
+
