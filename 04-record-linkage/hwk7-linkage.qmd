@@ -1,0 +1,13 @@
+---
+title: 'Homework 7: Linking Records'
+type: Homework
+date: '2025-10-30'
+categories:
+- HW
+- Week07
+---
+
+Note: This assignment must be accepted in Canvas and submitted in github classroom.
+
+{{< include ../../homework-repos/homework-7-linking-records/README.md >}}
+
