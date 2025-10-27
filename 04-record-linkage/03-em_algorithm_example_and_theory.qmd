@@ -1,0 +1,354 @@
+---
+title: "The EM Algorithm — Example and Theory"
+date: '2025-10-28'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week09
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+execute:
+  error: true
+  eval: true
+  echo: false
+  message: false
+  warning: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(ggplot2)
+library(dplyr)
+set.seed(202510)
+```
+
+# The EM Algorithm
+
+
+- example
+- bit more theoretical
+
+# Example: Two-component Gaussian mixture
+
+The scores we observe from pairwise comparisons of data from two sources seems to come from two (normal?) distributions:
+
+```{r simulate-data}
+# true parameters
+pi_true <- 0.4
+mu1_true <- -2
+mu2_true <- 2
+sigma1_true <- 0.7
+sigma2_true <- 1.0
+
+n <- 400
+z <- rbinom(n, 1, pi_true) + 1L          # 1 or 2
+x <- rnorm(n, mean = ifelse(z==1, mu1_true, mu2_true),
+           sd = ifelse(z==1, sigma1_true, sigma2_true))
+
+df <- data.frame(x = x)
+
+ggplot(df, aes(x)) + geom_histogram(bins = 40) +
+  labs(title = "Histogram of simulated  data") + 
+  theme_bw() + xlab("Scores of pairwise comparisons")
+```
+
+# Model Assumption
+
+We assume that the underlying model is
+
+$$
+X_i \sim \pi\,N(\mu_1,\sigma_1^2) + (1-\pi)\,N(\mu_2,\sigma_2^2),\quad i=1,\dots,n.
+$$
+
+Here the *latent* variable is the component indicator $Z_i\in\{1,2\}$ with
+
+$$P(Z_i=1)=\pi,\quad P(Z_i=2)=1-\pi.$$
+
+Unfortunately, $Z_i$ is not observed.
+
+# Model Parameters
+
+A two-component model has parameters
+
+$\theta=(\pi,\mu_1,\mu_2,\sigma_1^2,\sigma_2^2)$.
+
+
+If the labels $Z_i$ were observed, parameter estimation would be straightforward. 
+
+Since $Z_i$ is not observed, we use some heuristics to get started:
+
+(1) $\mu_1 < \mu_2$ (we will assume that $Z=1$ will translate to 'not a match' and $Z=2$ will be 'match')
+
+(2) $\pi^{(1)} = 1/2$;  
+$\mu_1^{(1)}, \mu_2^{(1)}$  means of lower and upper halves of scores; 
+$\sigma_1^{(1)}, \sigma_2^{(1)}$ sds of lower and upper half
+
+# Initial Step
+
+```{r}
+df <- df |> mutate(
+  Z = factor(ifelse(x < median(x), 1, 2))
+)
+df_sum <- df |> group_by(Z) |> summarize(
+  mean = mean(x),
+  sd = sd(x)
+)
+
+ggplot(df, aes(x, fill = Z)) + geom_histogram(bins = 40) +
+  labs(title = "Histogram of simulated  data") + 
+  theme_bw() + xlab("Scores of pairwise comparisons") + 
+  geom_vline(aes(xintercept = mean), data = df_sum)
+```
+
+# Expectation Step
+
+Based on estimate ${\hat\theta}^{(t)}$, we calculate the probabilities:
+
+$$
+P(Z_i=1\mid x_i,\theta^{(t)}) = \frac{\pi^{(t)}\,\phi(x_i;\mu_1^{(t)},\sigma_1^{2(t)})}{\sum_{k=1}^2 \pi_k^{(t)}\,\phi(x_i;\mu_k^{(t)},\sigma_k^{2(t)})}
+$$
+and 
+
+$$
+P(Z_i=2\mid x_i,\theta^{(t)}) = \frac{(1- \pi^{(t)})\,\phi(x_i;\mu_2^{(t)},\sigma_2^{2(t)})}{\sum_{k=1}^2 \pi_k^{(t)}\,\phi(x_i;\mu_k^{(t)},\sigma_k^{2(t)})}
+$$
+
+# Maximization step
+
+We get updated values ${\hat\theta}^{(t+1)}$ as 
+
+$$
+\mu_k^{(t+1)} = \frac{\sum_i k \cdot P(Z_i = k \mid x_i,\theta^{(t)})}{\sum_i P(Z_i = k \mid x_i,\theta^{(t)})} 
+$$
+$$
+\sigma_k^{(t+1)} = \frac{\sum_i (x_i - \mu_j^{(t)})^2 \cdot P(Z_i = k \mid x_i,\theta^{(t)})}{\sum_i P(Z_i = k \mid x_i,\theta^{(t)})} 
+$$
+$$
+\pi^{(t+1)} = \frac{1}{n}\sum_i P(Z_i = 1 \mid x_i,\theta^{(t)})
+$$
+
+# Run until convergence
+
+```{r em-implementation}
+em_gaussian_mixture <- function(x, K = 2, max_iter = 200, tol = 1e-8, verbose = FALSE){
+  n <- length(x)
+  # initialize
+  pi_k <- rep(1/K, K)
+  mu_k <- quantile(x, probs = seq(0,1,length.out = K+2))[2:(K+1)]
+  sigma_k <- rep(sd(x), K)
+cat(sprintf("Initialize: \npi = %f, mu_1 = %f, mu_2 = %f, sigma_1 = %f, sigma_2 = %f\n", pi_k[1], mu_k[1], mu_k[2], sigma_k[1], sigma_k[2]))
+  
+  loglik <- function(x, pi_k, mu_k, sigma_k){
+    sapply(x, function(xi){
+      log(sum(pi_k * dnorm(xi, mean = mu_k, sd = sigma_k)))
+    }) |> sum()
+  }
+
+  ll <- numeric(max_iter)
+  for (t in seq_len(max_iter)){
+    # E-step: compute responsibilities w_ik
+    w <- sapply(seq_len(K), function(k){
+      pi_k[k] * dnorm(x, mean = mu_k[k], sd = sigma_k[k])
+    })
+    w <- w / rowSums(w)
+
+    # M-step: update parameters
+    N_k <- colSums(w)
+    pi_k_new <- N_k / n
+    mu_k_new <- as.numeric((t(w) %*% x) / N_k)
+    sigma_k_new <- sqrt(as.numeric((t(w) %*% (x^2)) / N_k - mu_k_new^2))
+
+    pi_k <- pi_k_new
+    mu_k <- mu_k_new
+    sigma_k <- sigma_k_new
+cat(sprintf("Iteration %d: \npi = %f, mu_1 = %f, mu_2 = %f, sigma_1 = %f, sigma_2 = %f\n",t, pi_k[1], mu_k[1], mu_k[2], sigma_k[1], sigma_k[2]))
+
+    
+    ll[t] <- loglik(x, pi_k, mu_k, sigma_k)
+    if (t > 1 && abs(ll[t] - ll[t-1]) < tol){
+      ll <- ll[1:t]
+      break
+    }
+  }
+
+  list(pi = pi_k, mu = mu_k, sigma = sigma_k, loglik = ll, w = w)
+}
+
+res <- em_gaussian_mixture(x)
+```
+# 
+
+```
+Iteration 5: 
+pi = 0.539953, mu_1 = -2.014110, mu_2 = 1.821443, sigma_1 = 0.636488, sigma_2 = 1.338752
+Iteration 6: 
+pi = 0.554587, mu_1 = -2.004785, mu_2 = 1.935851, sigma_1 = 0.636896, sigma_2 = 1.195700
+Iteration 7: 
+pi = 0.564860, mu_1 = -1.988832, mu_2 = 2.008172, sigma_1 = 0.646324, sigma_2 = 1.108705
+Iteration 8: 
+pi = 0.570641, mu_1 = -1.977248, mu_2 = 2.046598, sigma_1 = 0.655227, sigma_2 = 1.063504
+Iteration 9: 
+pi = 0.573534, mu_1 = -1.970567, mu_2 = 2.064913, sigma_1 = 0.661230, sigma_2 = 1.042708
+```
+
+#
+
+```
+Iteration 10: 
+pi = 0.574914, mu_1 = -1.967120, mu_2 = 2.073345, sigma_1 = 0.664600, sigma_2 = 1.033444
+Iteration 11: 
+pi = 0.575559, mu_1 = -1.965440, mu_2 = 2.077213, sigma_1 = 0.666314, sigma_2 = 1.029282
+Iteration 12: 
+pi = 0.575860, mu_1 = -1.964643, mu_2 = 2.078994, sigma_1 = 0.667143, sigma_2 = 1.027388
+Iteration 13: 
+pi = 0.575999, mu_1 = -1.964270, mu_2 = 2.079815, sigma_1 = 0.667534, sigma_2 = 1.026519
+Iteration 14: 
+pi = 0.576063, mu_1 = -1.964097, mu_2 = 2.080195, sigma_1 = 0.667718, sigma_2 = 1.026118
+```
+
+#
+
+```
+Iteration 15: 
+pi = 0.576093, mu_1 = -1.964016, mu_2 = 2.080371, sigma_1 = 0.667803, sigma_2 = 1.025933
+Iteration 16: 
+pi = 0.576107, mu_1 = -1.963979, mu_2 = 2.080452, sigma_1 = 0.667842, sigma_2 = 1.025848
+Iteration 17: 
+pi = 0.576114, mu_1 = -1.963962, mu_2 = 2.080490, sigma_1 = 0.667861, sigma_2 = 1.025808
+Iteration 18: 
+pi = 0.576117, mu_1 = -1.963954, mu_2 = 2.080507, sigma_1 = 0.667869, sigma_2 = 1.025790
+Iteration 19: 
+pi = 0.576118, mu_1 = -1.963950, mu_2 = 2.080516, sigma_1 = 0.667873, sigma_2 = 1.025781
+Iteration 20: 
+pi = 0.576119, mu_1 = -1.963948, mu_2 = 2.080519, sigma_1 = 0.667875, sigma_2 = 1.025777
+```
+
+# Results
+
+$\hat{\pi} =$ `r res$pi[1]` <br>
+$\hat\mu_1 =$ `r res$mu[1]`,  $\hat\mu_2 =$ `r res$mu[2]` <br>
+$\hat\sigma_1 =$ `r res$sigma[1]`, $\hat\sigma_2 =$ `r res$sigma[2]` <br>
+
+
+```{r}
+
+# plot log-likelihood progression
+qplot(seq_along(res$loglik), res$loglik, geom = 'line') +
+  labs(x = 'EM iteration', y = 'log-likelihood') + theme_bw()
+```
+
+
+# Inspect fitted mixture
+
+```{r plot-fit}
+# show estimated densities
+xx <- seq(min(x)-1, max(x)+1, length.out = 500)
+fit_density <- res$pi[1]*dnorm(xx, res$mu[1], res$sigma[1]) +
+  res$pi[2]*dnorm(xx, res$mu[2], res$sigma[2])
+
+df_line <- data.frame(xx = xx, y = fit_density)
+
+ggplot(df, aes(x)) + geom_histogram(aes(y=..density..), bins = 40) +
+  geom_line(data = df_line, aes(xx, y), size = 1) +
+  labs(title = 'Fitted mixture density over histogram') + 
+  theme_bw()
+
+```
+
+# Statistical Foundation of EM Algorithm
+
+Let the observed data be $X = (X_1,\dots,X_n)$ and let the latent (missing) data be $Z = (Z_1,\dots,Z_n)$. The complete-data log-likelihood is
+
+$$
+\ell_c(\theta) = \log p(X,Z\mid\theta),
+$$
+
+while the observed-data log-likelihood is
+
+$$
+\ell_o(\theta) = \log p(X\mid\theta) = \log \int p(X,Z\mid\theta)\,dZ.$$
+
+Direct maximization of $\ell_o(\theta)$ is often difficult.
+
+# E-step and M-step (concept)
+
+EM constructs an iterative scheme. Given current parameter value $\theta^{(t)}$:
+
+- E-step: compute the expected complete-data log-likelihood under the conditional distribution of the missing data given observed data and current parameters:
+
+- M-step: choose the next iterate as maximum of this expected complete-data log-likelihood
+
+
+# E-step and M-step (formula)
+
+Iterate until convergence
+
+- E-step: 
+
+$$
+Q(\theta\mid\theta^{(t)}) = E_{Z\mid X,\theta^{(t)}}\left[ \ell_c(\theta) \right].
+$$
+
+- M-step: 
+
+$$
+\theta^{(t+1)} = \arg\max_{\theta} Q(\theta\mid\theta^{(t)}).
+$$
+
+# Why does EM work?
+
+For any $\theta$ and $\theta^{(t)}$:
+
+$$
+\ell_o(\theta) - \ell_o(\theta^{(t)}) = \log\frac{p(X\mid\theta)}{p(X\mid\theta^{(t)})} = \log E_{Z\mid X,\theta^{(t)}}\left[ \frac{p(X,Z\mid\theta)}{p(X,Z\mid\theta^{(t)})} \right].
+$$
+
+Using Jensen's inquality, $\log E[W] \ge E[\log W]$. Rearranging yields
+
+$$
+\ell_o(\theta) \ge Q(\theta\mid\theta^{(t)}) - H(\theta^{(t)}),
+$$
+
+where $H(\theta^{(t)}) = E_{Z\mid X,\theta^{(t)}}[\log p(Z\mid X,\theta^{(t)})]$ does not depend on $\theta$.
+
+# Why does EM work? (2)
+
+Choosing $\theta = \theta^{(t+1)}$ that maximizes $Q$ ensures
+
+$$
+\ell_o(\theta^{(t+1)}) \ge \ell_o(\theta^{(t)}),
+$$
+
+so the observed-data log-likelihood is non-decreasing across iterations.
+
+
+# Convergence properties and limitations
+
+- **Monotonicity**: EM never decreases the observed-data log-likelihood. 
+- **Fixed points**: Any limit point of EM is a stationary point (often a local maximum or saddle point) of the observed-data log-likelihood. EM can converge to local maxima.
+- **Speed**: EM can be slow near the maximum — it typically has linear convergence.
+- **Identifiability**: For mixture models, label switching means component labels are not identifiable — EM will converge to one labeling.
+
+
+# Practical tips and diagnostics
+
+- Initialize EM multiple times with different random starts to avoid poor local maxima.
+- Monitor the observed log-likelihood; watch for plateaus.
+- Plot fitted densities to check fit.
+- For mixtures, consider penalized likelihoods or Bayesian approaches to handle overfitting and component proliferation.
+
+
+# References
+
+- Dempster, A. P., Laird, N. M., & Rubin, D. B. (1977). Maximum likelihood from incomplete data via the EM algorithm. *Journal of the Royal Statistical Society: Series B (Methodological)*.
+- McLachlan, G., & Peel, D. (2000). *Finite Mixture Models*. Wiley.
+- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning* — Chapter 9 (mixture models and EM).
+
+

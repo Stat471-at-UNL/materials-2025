@@ -112,7 +112,7 @@ True match status is unobserved; use Expectation–Maximization (EM) algorithm:
    Estimate match memberships $P(M \mid \gamma)$ for each pair given current parameters.
 
 2. **M-step:**  
-   Update $m_j = P(\gamma_j \mid M), u_j = P(\gamma_j \mid U), P(M)$ based on expected match memberships.
+   Update $m^{(i+1)} = P(\gamma \mid M), u^{(i+1)} = P(\gamma \mid U), P(M)$ based on expected match memberships.
 
 Iterate until convergence.
 
@@ -126,7 +126,7 @@ $$
 
 Use decision threshold to classify matches, e.g. any records with $P(\gamma \mid M)$  above $T_U$ are matches, any records below $T_L$ are non-matches.
 
-Quantify uncertainty: e.g. trigger manual review for pairs that have posterior probabilities in $[T_L, Y_U]$.
+Quantify uncertainty: e.g. trigger manual review for pairs that have posterior probabilities in $[T_L, T_U]$.
 
 # Example with `fastLink`
 
@@ -137,8 +137,8 @@ The `fastLink` package output provides **posterior probabilities** for all recor
 library(fastLink)
 
 fl_out <- fastLink(
-  dfA = df_a,
-  dfB = df_b,
+  dfA = df_b,
+  dfB = df_a,
   varnames = c("first", "last", "birth_year", "city"),
   stringdist.match = c("first", "last", "city"),
   numeric.match = c("birth_year"),
