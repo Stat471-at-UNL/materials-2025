@@ -1,0 +1,207 @@
+---
+title: "The Structured Query Language (SQL)"
+date: '2025-11-18'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week11
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r setup, include=FALSE, message=FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Outline
+
+- a bit about databases
+- linking R to a (local) data base
+- investigate the FARS data
+
+<br>
+
+Resource:
+
+- [https://www.w3schools.com/sql/](SQL Tutorial)
+
+
+# Why databases?
+
+What is a database?
+
+- A collection of data
+- A set of rules to manipulate data
+
+Why are they important?
+
+- Efficient manipulation of large data sets
+- Convenient processing of data
+- Integration of multiple sources of data
+- Access to a shared resource
+
+
+# Relational Databases
+
+- Database is collection of tables and links (normal form)
+- SQL (Structured Query Language) for querying 
+- DBMS (Database Management System) and managing data
+
+# Structured Query Language
+
+* Structured Query Language (1970, E Codds)
+* Programming language used for accessing data in a database
+* ANSI standard since 1986, ISO standard since 1987
+* Still some portability issues between software systems!
+* We’ll mainly focus on SQL queries to access data
+
+# Syntax
+
+* SQL is not case sensitive.
+* Some systems require `;` at the end of each line. The semi-colon can be used to separate each SQL statement in a system that allows multiple command to be executed in a call to the server.
+
+
+# Select {.smaller}
+
+:::: {.columns}
+
+::: {.column width="47.5%" .small }
+
+**Student**
+
+| ***ID***            | Name          | Major  |
+| ------------- |:-------------:| ------:|
+| 1234          | Never Ever    | Math   |
+| 4321          | Some Times    | CS     |
+
+:::
+::: {.column width="5%"}
+:::
+
+::: {.column width="47.5%" .small }
+**Attendance**
+
+| ***ID***            | ***Date***          | Status  |
+| ------------- |:-------------:| -------:|
+| 1234          | 02-Feb        | absent  |
+| 1234          | 09-Feb        | absent  |
+| 4321          | 02-Feb        | present |
+| 4321          | 09-Feb        | absent  |
+
+:::
+::::
+
+`Select * from student` leads to 
+
+::: {.fragment .fade-in}
+
+| ***ID***            | Name          | Major  |
+| ------------- |:-------------:| ------:|
+| 1234          | Never Ever    | Math   |
+| 4321          | Some Times    | CS     |
+
+:::
+
+
+# Where {.smaller}
+
+
+:::: {.columns}
+
+::: {.column width="47.5%"}
+
+**Student**
+
+| ***ID***            | Name          | Major  |
+| ------------- |:-------------:| ------:|
+| 1234          | Never Ever    | Math   |
+| 4321          | Some Times    | CS     |
+
+:::
+
+::: {.column width="5%" }
+
+:::
+
+::: {.column width="47.5%" }
+
+**Attendance**
+
+| ***ID***            | ***Date***          | Status  |
+| ------------- |:-------------:| -------:|
+| 1234          | 02-Feb        | absent  |
+| 1234          | 09-Feb        | absent  |
+| 4321          | 02-Feb        | present |
+| 4321          | 09-Feb        | absent  |
+
+:::
+::::
+
+`Select Name from student where Major='Math'` leads to 
+
+::: {.fragment .fade-in}
+
+| Name          | 
+| ------------- |
+| Never Ever    | 
+
+:::
+
+# Aggregations {.smaller}
+
+:::: {.columns}
+
+::: {.column width="47.5%" }
+
+**Student**
+
+| ***ID***            | Name          | Major  |
+| ------------- |:-------------:| ------:|
+| 1234          | Never Ever    | Math   |
+| 4321          | Some Times    | CS     |
+
+:::
+
+::: {.column width="5%" }
+
+:::
+
+::: {.column width="47.5%" }
+
+**Attendance**
+
+| ***ID***            | ***Date***          | Status  |
+| ------------- |:-------------:| -------:|
+| 1234          | 02-Feb        | absent  |
+| 1234          | 09-Feb        | absent  |
+| 4321          | 02-Feb        | present |
+| 4321          | 09-Feb        | absent  |
+:::
+
+::::
+
+`Select ID, count(ID) from Attendance where Status='absent'` leads to 
+
+::: {.fragment .fade-in}
+
+| ***ID***            | Frequency          | 
+| ------------- |-------------:| 
+| 1234          | 2    | 
+| 4321          | 1    | 
+:::
+
+# Additional Resources for SQL
+
+* W3Schools: http://www.w3schools.com/sql/default.asp
+* DBI package, RMySQL, RSQLite: 
+http://cran.r-project.org/web/packages/RMySQL/RMySQL.pdf
+http://cran.r-project.org/web/packages/RSQLite/RSQLite.pdf
+

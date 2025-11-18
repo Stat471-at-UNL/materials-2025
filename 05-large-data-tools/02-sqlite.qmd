@@ -1,0 +1,209 @@
+---
+title: "Working with Databases in R: dbplyr"
+date: '2025-11-18'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week11
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r setup, include=FALSE, message=FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=FALSE)
+library(tidyverse)
+```
+
+# Outline
+
+<br>
+
+Resource:
+
+- `dbplyr` package: `vignette("dbplyr", package = "dbplyr")`
+- [Databases in R](https://solutions.posit.co/connections/db/databases/index.html)
+
+# Connection to Databases
+
+- General interface: `DBI` (data base interface) for data base connections
+
+- specific interface to databases such as SQLite, Postgres, MySQL/MariaDB, SQL Server, DuckDB (mostly in separate packages):
+
+`RSQLite`, `RPostgres`, `RMySQL`, `RMariaDB`, `duckdb`, `bigrquery`, `sparklyr`
+
+
+# An example: FARS data
+
+- US Department of transportation is keeping a record of every accident that results in a fatality in the FARS Data base (fatal accident report system, [http://www.nhtsa.gov/FARS](http://www.nhtsa.gov/FARS))
+- FARS consists of 20+ tables consisting of various aspects of each accident
+
+- Documentation at
+http://www-nrd.nhtsa.dot.gov/Cats/listpublications.aspx?Id=J&ShowBy=DocType
+
+
+# SQLite
+
+- SQLite is a relational database management system
+- Unlike other DBMS SQLite is a server-less system with "zero-configuration"
+- `fars2014` is a SQLite database of the 2014 data provided by FARS, consisting of three tables: `accidents`, `person`, and `vehicle` (make sure to download  `fars2014`  from our github repo).
+
+# Connect to SQLite
+
+```{r message=FALSE}
+library(DBI)
+library(RSQLite)
+
+#download.file("")
+con <- dbConnect(SQLite(), "../data/fars2014")
+```
+
+# Listing and Inspecting Tables
+
+```{r}
+# Lists tables in the database:  
+dbListTables(con)
+
+# Look at table structure:  
+dbListFields(con, "accidents")
+```
+
+- Metadata queries are fast: they do *not* load data  
+
+# Using `tbl()` to Reference Tables
+
+
+Use `tbl` to connect to a specific table (dataset) in the database
+
+note: R does not load the data into the session
+
+```{r}
+accidents <- tbl(con, "accidents")
+```
+
+- `tbl()` creates a **lazy table object**  
+- Data is NOT pulled into R  
+- Only the query is defined, not executed  
+
+- pull with `collect`
+
+# `dplyr` and `dbplyr`
+
+- `dplyr` package works (almost) the same for local data frames as tables in a database 
+- `dplyr` functionality:
+`group_by`, `summarize`, `transform`, `filter`, `arrange`, `select`
+
+
+# 
+
+- `dplyr` commands do not actually download the (whole) database
+- use `collect()` to extract *all* records. This returns a tibble
+
+```{r eval = FALSE}
+accidents %>% 
+  filter(between(LONGITUD, -130, 0)) %>% 
+  collect() %>%
+  ggplot(aes(LONGITUD, LATITUDE)) +
+    geom_point(alpha = 0.5, size = 0.5)
+```
+
+
+
+#
+
+```{r echo=FALSE}
+accidents %>% 
+  filter(between(LONGITUD, -130, 0)) %>% 
+  collect() %>%
+  ggplot(aes(LONGITUD, LATITUDE)) +
+    geom_point(alpha = 0.5, size = 0.5)
+```
+
+# Your Turn  {background-color="#006666"}
+
+Connect to the FARS database (using the SQLite database `fars2014`). 
+Answer the following questions:
+
+- are there some days of the week where more accidents happen than on others (use variable `DAY_WEEK`)?
+- what time of the day do accidents happen (use variable `HOUR`)?
+- what is the number of accidents with at least one drunk driver (use variable `DRUNK_DR`)?
+
+<br>
+<br>
+<br>
+<br>
+
+```{r}
+dayweek <- accidents %>% group_by(DAY_WEEK) %>% tally() 
+dayweek %>% collect() %>% 
+  ggplot(aes(x = DAY_WEEK, weight=n)) + geom_bar() 
+
+hours <- accidents %>% group_by(HOUR) %>% tally() 
+hours %>% filter(HOUR < 25) %>% collect() %>% 
+  ggplot(aes(x = HOUR, weight=n)) + geom_bar() 
+
+drunk <- accidents %>% group_by(DRUNK_DR) %>% tally() 
+drunk %>% collect() %>% 
+  ggplot(aes(x = DRUNK_DR, weight=n)) + geom_bar() 
+```
+
+# Your Turn  {background-color="#006666"}
+
+Connect to the  `person` table. Identify drivers (`PER_TYP` == 1, see [fars manual](https://crashstats.nhtsa.dot.gov/Api/Public/ViewPublication/813706) ) and subset on them.
+
+<br>
+
+```{r}
+person <- tbl(con, "person")
+drivers <- person %>% filter(PER_TYP == 1)
+```
+
+# Working with multiple tables
+
+- Only rarely single datasets are giving us all the answers we need
+- `left_join`, `right_join` work in the same way on databases as on local data frames.
+
+
+# Investigating accidents by gender
+
+We want to join drivers and accidents:
+
+```{r}
+driver_acc <- left_join(drivers, accidents)
+```
+
+Note that there are a lot of variables with the same name - we actually include all of these variables 
+
+
+# Your Turn  {background-color="#006666"}
+
+- Join drivers and accidents data.
+- Tally the number of accidents by day of the week (`DAY_WEEK`), hour of the day (`HOUR`) and gender (`SEX`). Visualize the results!
+
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+```{r}
+driver_acc %>% group_by(DAY_WEEK, HOUR, SEX) %>% 
+  tally() %>% 
+  filter(HOUR < 25, SEX < 8) %>% 
+  collect() %>% 
+  ggplot(aes(x = HOUR, y = n)) + 
+    geom_point(aes(colour = factor(SEX))) +
+  facet_wrap(~DAY_WEEK) +
+  scale_colour_brewer(palette="Set1")
+```
