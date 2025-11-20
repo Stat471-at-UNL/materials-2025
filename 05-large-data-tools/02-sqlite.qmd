@@ -28,7 +28,9 @@ library(tidyverse)
 Resource:
 
 - `dbplyr` package: `vignette("dbplyr", package = "dbplyr")`
+- R for Data Science, [Databases Chapter](https://r4ds.hadley.nz/databases.html)
 - [Databases in R](https://solutions.posit.co/connections/db/databases/index.html)
+
 
 # Connection to Databases
 

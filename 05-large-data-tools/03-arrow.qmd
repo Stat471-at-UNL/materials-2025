@@ -1,0 +1,246 @@
+---
+title: " Working with Apache Arrow in R"
+date: '2025-11-20'
+engine: knitr
+type: slides
+categories:
+- slides
+- Week11
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+execute: 
+  error: true
+---
+
+```{r setup, include=FALSE, message=FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=FALSE)
+library(tidyverse)
+```
+
+# Outline
+
+- Intro to Arrow
+- Basic functionality R to and from Arrow
+
+<br>
+
+Resource:
+
+- [Arrow for R Cheat Sheet](https://github.com/apache/arrow/blob/main/r/cheatsheet/arrow-cheatsheet.pdf)
+- [Arrow for Data Science](https://r4ds.hadley.nz/arrow)
+- [Arrow Project](https://arrow.apache.org/)
+
+
+# What is Apache Arrow? {.smaller}
+
+language-independent columnar memory format for fast data access and interoperability
+
+- fast I/O (locally: CSV, Parquet, Arrow; remotely: aws S3, Google Cloud, Arrow Flight)
+- dataset queries without loading data into memory
+
+- zero-copy data sharing between Python and R
+
+- a dplyr interface for on-disk data
+- integration with databases: DuckDB, Spark, Polars
+
+
+# Installing Arrow
+
+```{r eval = FALSE}
+install.packages("arrow")
+```
+
+Check version:
+
+```{r}
+library(arrow)
+arrow_info()
+```
+
+# Arrow Data Structures in R
+
+Arrow provides two main structures:
+
+- Arrow Table — immutable, columnar, in-memory
+- Arrow Dataset — lazily evaluated collections of files (CSV/Parquet)
+
+# Creating an Arrow Table
+
+```{r}
+library(arrow)
+
+tbl <- Table$create(
+  x = 1:5,
+  y = letters[1:5]
+)
+
+tbl
+```
+
+# Converting between Arrow and R
+
+```{r}
+as.data.frame(tbl)
+arrow_tbl <- as_arrow_table(mtcars)
+```
+
+# Reading and Writing Files with Arrow
+
+-  CSV
+
+```
+csv_data <- read_csv_arrow("bigfile.csv")
+write_csv_arrow(csv_data, "output.csv")
+```
+
+-  Parquet
+
+```
+parquet_data <- read_parquet("data.parquet")
+write_parquet(csv_data, "out.parquet")
+```
+
+# Example: Flight Data
+
+Reading with `read_csv` in R:
+
+```{r message = FALSE, warning=FALSE}
+system.time(
+  flights_r <- read_csv(here::here("flights.csv"))
+)
+```
+
+Reading with Arrow:
+
+```{r message = FALSE, warning=FALSE}
+system.time(
+  flights_arrow <- read_csv_arrow(here::here("flights.csv"))
+)
+```
+
+```{r}
+class(flights_arrow)
+```
+
+
+# Arrow Datasets
+
+```{r}
+system.time(
+ds <- open_dataset(
+  sources = here::here("flights.csv"), 
+  format = "csv")
+)
+ds
+```
+
+Datasets provide lazy, on-disk querying across directories of CSV/Parquet files.
+
+# Using `dplyr` with Arrow
+
+```{r}
+result <- ds |> 
+  group_by(Year, Month) |>
+  summarise(n = n()) |>
+  collect()
+
+```
+
+`collect()` pulls results into R.  
+Arrow evaluates queries efficiently in C++.
+
+# Example: daily flight summary
+
+
+```{r}
+system.time(
+result <- ds |> 
+  group_by(Year, Month, DayofMonth, Cancelled) |>
+  summarise(n = n()) |>
+  collect()
+)
+```
+
+# Daily flights
+
+```{r}
+result |> mutate(
+  date = lubridate::ymd(
+    sprintf("%d/%d/%d", Year, Month, DayofMonth)),
+    wday = wday(date, label = TRUE)
+) |> 
+  ggplot(aes(x = date, y = n)) + 
+  geom_point(aes(colour = wday), size = 3) + 
+  theme_bw()
+```
+
+# Data format `parquet`
+
+```{r}
+pq_path <- "data/flights"
+
+ds |> select(1:78) |>
+  group_by(Year, Month) |>
+  write_dataset(path = pq_path, format = "parquet")
+```
+
+Arrow automatically handles partitions:
+
+```
+data/  
+  flights/
+    Year=2024/  
+      Month=11/
+      Month=12/
+    Year=2025/  
+      Month=1/
+```
+
+# Arrow Querying
+
+Querying:
+
+```{r}
+system.time(
+flights_pq <- open_dataset("data/flights") |> collect()
+)
+
+system.time(
+result <- open_dataset("data/flights") |>
+  group_by(Year, Month, DayofMonth, Cancelled) |>
+  summarise(n = n()) |>
+  collect()
+)
+```
+
+
+
+# Arrow + DuckDB
+
+```{r}
+library(duckdb)
+library(DBI)
+library(arrow)
+
+con <- dbConnect(duckdb::duckdb())
+flights_db <- flights_pq |> to_duckdb()
+```
+
+Fast analytical queries on Arrow data:
+
+```{r}
+system.time(
+result <- flights_db |>
+  group_by(Year, Month, DayofMonth, Cancelled) |>
+  summarise(n = n()) |>
+  collect()
+)
+```
+
+
